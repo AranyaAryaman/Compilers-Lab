@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "lex.h"
+#include <stdlib.h>
 
 statements()
 {
@@ -56,7 +57,7 @@ term_prime()
      *       |   epsilon
      */
 
-    if( match( TIMES ) )
+    if( match( MUL ) )
     {
         advance();
         factor();
