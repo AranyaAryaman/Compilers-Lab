@@ -1,0 +1,6 @@
+*.o
+*.out
+*.exe
+lex.txt
+out.txt
+compiler
