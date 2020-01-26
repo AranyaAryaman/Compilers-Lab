@@ -1,2 +1,0 @@
-- [] There is no return type for code_gen::17::1::statements(), but wee call $$ tempvar = statements() $$ in multiple places
-- [] 

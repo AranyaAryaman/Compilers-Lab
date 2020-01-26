@@ -1,6 +1,5 @@
 ﻿---
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: 'true'
 AlignEscapedNewlines: Left
 AlignOperands: 'true'
 AlignTrailingComments: 'true'
