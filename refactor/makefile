@@ -3,6 +3,7 @@ PROJDIR := $(realpath $(CURDIR))
 SOURCEDIR := $(PROJDIR)/src/
 BUILDDIR := $(PROJDIR)/build/
 TARGET = compiler
+INPUTFILE = f.txt
 INCLUDES = $(PROJDIR)/include/
 SOURCES = $(wildcard $(SOURCEDIR)*.c)
 VPATH = $(SOURCES)
@@ -24,7 +25,7 @@ else
 	SEP=/
 endif
 
-PSEP = $(strip $(SEP))
+# PSEP = $(strip $(SEP))
 
 ifeq ($(VERBOSE),TRUE)
 	HIDE =

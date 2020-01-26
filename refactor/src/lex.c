@@ -8,23 +8,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 char *yytext = "";		  // Lexeme (not '\0'terminated)
-int yyleng   = 0;		  // Lexeme length
+int yyleng = 0;			  // Lexeme length
 int yylineno = 0;		  // Input line number
 int lex_orig(void);
 // Get next lexeme
 int lex(void) {
 	// Proxy for lex function. Stores lex debug info into lex_file
-	int res	= lex_orig();
+	int res = lex_orig();
 	int offset = 0;
 	if(yyleng % 2 == 0)
 		offset = 1;
 	if(!isprint(yytext[0]))
-		for(int i = 0; i < yyleng; i++)
-			yytext[i] = '-';
-	fprintf(lex_file, "Token=<%*s%.*s%*s>,\tID=<%2d>\n", 10 - yyleng / 2, "", yyleng, yytext, offset + 10 - yyleng / 2,
-			"", res);
+		fprintf(lex_file, "Token=<          %c          >,\tID=<%2d>\n", '~', res);
+	else
+		fprintf(lex_file, "Token=<%*s%.*s%*s>,\tID=<%2d>\n", 10 - yyleng / 2, "", yyleng, yytext,
+				offset + 10 - yyleng / 2, "", res);
 	return res;
 }
 int lex_orig(void) {
@@ -42,7 +41,7 @@ int lex_orig(void) {
 			 */
 			current = input_buffer;
 			if(fgets(input_buffer, sizeof(input_buffer), input_file) == NULL) {
-				*current = '\0';
+				*current = 0;
 				return EOI;
 			}
 
@@ -67,8 +66,10 @@ int lex_orig(void) {
 				case ')': return RP;
 				case ':': return COL;
 				case '\n':
+				case '\r':
 				case '\t':
 				case ' ': break;
+				case '\0': return EOI;
 				default:
 					if(!isalnum(*current))
 						fprintf(stderr, "Not alphanumeric <%c>\n", *current);
@@ -92,17 +93,25 @@ int lex_orig(void) {
 							return BEGIN;
 						else if(strncmp("end", buffer, 3) == 0)
 							return END;
+						if(isalpha(yytext[0]) || yytext[0] == '_')
+							return ID;
+						for(int i = 0; i < yyleng; i++)
+							if(!isdigit(yytext[i])) {
+								fprintf(stderr, "%.*s is not a number or id\n", yyleng, yytext);
+								return INVALID;
+							}
 						// printf("#");
 						// for(int i = 0; i < yyleng; i++)
 						// 	printf("=%c", buffer[i]);
 						// printf("=\n");
 						// TODO: Distinction between number and identifier
-						return NUM_OR_ID;
+						return NUMBER;
 					}
 					break;
 			}
 		}
 	}
+	return EOI;
 }
 
 int Lookahead = UNLEXED; /* Lookahead token  */

@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *statements();
+void start();
 
 #endif

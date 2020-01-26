@@ -9,7 +9,7 @@
 // Biggest expression our compiler could
 // parse can not have more than 8 monomials.
 char *Names[] = {"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"};
-char **Namep  = Names;
+char **Namep = Names;
 
 // Get a new name to store a procedure.
 char *newname() {
@@ -22,6 +22,7 @@ char *newname() {
 
 // Free a name for future use.
 void freename(char *s) {
+	// printf("\n==%s, %s==\n", s, *Namep);
 	if(Namep > Names)
 		*--Namep = s;
 	else {

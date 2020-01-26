@@ -1,2 +1,2 @@
-- [] There is no return type for code_gen::17::1::statements(), but wee call $$ tempvar = statements() $$ in multiple places
-- [] 
+- BODMAS ki maa chud gyi.
+- Comparisions in expressions are of the form {t0 = (t0==t2)}, but written as t0==t1 only.
