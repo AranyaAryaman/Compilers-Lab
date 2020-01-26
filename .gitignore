@@ -1,6 +1,7 @@
 lex.txt
 out.txt
 compiler
+*.s
 *.d
 *.o
 *.ko

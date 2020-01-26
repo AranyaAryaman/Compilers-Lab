@@ -9,27 +9,26 @@
 enum {
 	INVALID = -2,
 	UNLEXED,
-	EOI,			 // End of input
-	SEMI,			 // ;
-	PLUS,			 // +
-	MUL,			 // *
-	LP,				 // (
-	RP,				 // )
-	MINUS,			 // -
-	DIV,			 // /
-	LT,				 // <
-	GT,				 // >
-	EQ,				 // =
-	COL,			 // :
-	IF,				 // if
-	THEN,			 // then
-	WHILE,			 // while
-	DO,				 // do
-	BEGIN,			 // begin
-	END,			 // end,
-	NUMBER,			 // Decimal number
-	ID,				 // Identifier
-	NUM_OR_ID		 // TODO: remove this after fixing lex.c todo,    Number or Identifier
+	EOI,		   // End of input
+	SEMI,		   // ;
+	PLUS,		   // +
+	MUL,		   // *
+	LP,			   // (
+	RP,			   // )
+	MINUS,		   // -
+	DIV,		   // /
+	LT,			   // <
+	GT,			   // >
+	EQ,			   // =
+	COL,		   // :
+	IF,			   // if
+	THEN,		   // then
+	WHILE,		   // while
+	DO,			   // do
+	BEGIN,		   // begin
+	END,		   // end,
+	NUMBER,		   // Decimal number
+	ID			   // Identifier
 };
 extern char *yytext;
 extern int yyleng;

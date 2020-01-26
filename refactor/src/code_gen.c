@@ -4,50 +4,52 @@
 #include "main.h"
 #include "name.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 int label_count = 0;
-char *statement(void);
+void statement(void);
 char *expression(void);
 char *non_relational(void);
 char *monomial(void);
-char *term(void);
 char *factor(void);
 void debug(char *str) {
+	assert(str != NULL);
 	// fprintf(stderr, "%s\n", str);
 }
 void start(void) {
-	// start		->	statement
-	if(match(EOI))
+	// start		->	statement+
+	if(input_filename != NULL && match(EOI)) {
 		err("FILE <%s> IS EMPTY\n", input_filename);
+	}
+	fprintf(output_file, ".global _start\n");
+	fprintf(output_file, ".section\n.text\n\n");
+	fprintf(output_file, "_start:\n");
 	while(!match(EOI)) {
 		statement();
 	}
-	printf("NOP\n");
+	fprintf(output_file, "\tHLT\n");
 }
-char *statement(void) {
+void statement(void) {
 	debug("ENTER statement");
-	// statement ->		expression SEMI
-	//				|	expression SEMI statement
-	//				|	id COL EQ expression SEMI
-	//				|	id COL EQ expression SEMI statement
-	//				|	if expression then statement
-	//				|	while expression do statement
-	//				|	begin opt_statements end
-	//				|	begin opt_statements end statement
+	// statement ->		expression() SEMI
+	//				|	ID COL EQ expression() SEMI
+	//				|	IF expression() THEN statement()
+	//				|	WHILE expression() DO statement()
+	//				|	BEGIN statement* END
 	char *tempvar, *tempvar2;
 
 	if(match(IF)) {
 		advance();
 		tempvar = expression();
-		printf("\tCMP %s, 0\n", tempvar);
+		fprintf(output_file, "\tCMP %s, 0\n", tempvar);
 		label_count++;
 		int temp_label = label_count;
-		printf("\tJE L%d\n", temp_label);
+		fprintf(output_file, "\tJE L%d\n", temp_label);
 		if(match(THEN)) {
 			advance();
 			statement();
-			printf("L%d:\n", temp_label);
+			fprintf(output_file, "L%d:\n", temp_label);
 		} else {
 			err("THEN clause not found%s", "\n");
 		}
@@ -58,28 +60,29 @@ char *statement(void) {
 		int temp_label = label_count;
 		label_count++;
 		int temp_label2 = label_count;
-		printf("L%d:\n", temp_label);
+		fprintf(output_file, "L%d:\n", temp_label);
 		tempvar = expression();
-		printf("\tCMP %s, 0\n", tempvar);
-		printf("\tJE L%d\n", temp_label2);
+		fprintf(output_file, "\tCMP %s, 0\n", tempvar);
+		fprintf(output_file, "\tJE L%d\n", temp_label2);
 		if(match(DO)) {
 			advance();
 			statement();
-			printf("\nJMP L%d\n", temp_label);
-			printf("L%d:\n", temp_label2);
+			fprintf(output_file, "\tJMP L%d\n", temp_label);
+			fprintf(output_file, "L%d:\n", temp_label2);
 		} else {
 			err("Line %d:DO clause not found\n", yylineno);
 		}
 		freename(tempvar);
-		// } else if(match(BEGIN)) {
-		// 	advance();
-		// 	tempvar = opt_statements();			// TODO
-		// 	if(match(END)) {
-		// 		advance();
-		// 		tempvar2 = statements();
-		// 	}
-		// 	freename(tempvar2);
-		//  freename(tempvar);
+	} else if(match(BEGIN)) {
+		advance();
+		while(!match(END) && !match(EOI)) {
+			statement();
+		}
+		if(match(END)) {
+			advance();
+		} else {
+			err("Line %d:No END clause found\n", yylineno);
+		}
 	} else if(match(ID)) {
 		char tempvar_arr[1024];
 		strncpy(tempvar_arr, yytext, yyleng);
@@ -90,7 +93,7 @@ char *statement(void) {
 			if(match(EQ)) {
 				advance();
 				tempvar2 = expression();
-				printf("\tMOV %s, %s\n", tempvar_arr, tempvar2);
+				fprintf(output_file, "\tMOV %s, %s\n", tempvar_arr, tempvar2);
 				if(match(SEMI))
 					advance();
 				else {
@@ -112,9 +115,7 @@ char *statement(void) {
 		}
 		freename(tempvar);
 	}
-
 	debug("EXIT statement");
-	return "STATEMENT_RETURN";
 }
 char *expression(void) {
 	debug("ENTER expression");
@@ -128,17 +129,20 @@ char *expression(void) {
 	if(match(EQ)) {
 		advance();
 		tempvar2 = non_relational();
-		printf("\t%s == %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tSETZ %s\n", tempvar);
 		freename(tempvar2);
 	} else if(match(LT)) {
 		advance();
 		tempvar2 = non_relational();
-		printf("\t%s <= %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tSETL %s\n", tempvar);
 		freename(tempvar2);
 	} else if(match(GT)) {
 		advance();
 		tempvar2 = non_relational();
-		printf("\t%s >= %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
+		fprintf(output_file, "\tSETG %s\n", tempvar);
 		freename(tempvar2);
 	}
 	debug("EXIT expression");
@@ -152,15 +156,15 @@ char *non_relational(void) {
 	char *tempvar, *tempvar2;
 
 	tempvar = monomial();
-	if(match(PLUS) || match(MINUS)) {
-		char temp;
-		if(match(PLUS))
-			temp = '+';
-		else
-			temp = '-';
+	if(match(PLUS)) {
 		advance();
 		tempvar2 = non_relational();
-		printf("\t%s %c= %s\n", tempvar, temp, tempvar2);
+		fprintf(output_file, "\tADD %s, %s\n", tempvar, tempvar2);
+		freename(tempvar2);
+	} else if(match(MINUS)) {
+		advance();
+		tempvar2 = non_relational();
+		fprintf(output_file, "\tSUB %s, %s\n", tempvar, tempvar2);
 		freename(tempvar2);
 	}
 	debug("EXIT non_relational");
@@ -173,32 +177,18 @@ char *monomial(void) {
 	//				|	factor
 	char *tempvar, *tempvar2;
 	tempvar = factor();
-	while(match(MUL) || match(DIV)) {
-		char temp;
-		if(match(MUL))
-			temp = '*';
-		else
-			temp = '/';
+	if(match(MUL)) {
 		advance();
 		tempvar2 = monomial();
-		printf("\t%s %c= %s\n", tempvar, temp, tempvar2);
+		fprintf(output_file, "\tMUL %s, %s\n", tempvar, tempvar2);
+		freename(tempvar2);
+	} else if(match(DIV)) {
+		advance();
+		tempvar2 = monomial();
+		fprintf(output_file, "\tDIV %s, %s\n", tempvar, tempvar2);
 		freename(tempvar2);
 	}
 	debug("EXIT monomial");
-	return tempvar;
-}
-char *term(void) {
-	debug("ENTER term");
-	char *tempvar, *tempvar2;
-
-	tempvar = factor();
-	while(match(MUL)) {
-		advance();
-		tempvar2 = factor();
-		printf("\t%s *= %s\n", tempvar, tempvar2);
-		freename(tempvar2);
-	}
-	debug("EXIT term");
 	return tempvar;
 }
 char *factor(void) {
@@ -216,7 +206,7 @@ char *factor(void) {
 		 */
 
 		// printf("\t%s = %.*s\n", tempvar = newname(), yyleng, yytext);
-		printf("\tMOV %s, %.*s\n", tempvar = newname(), yyleng, yytext);
+		fprintf(output_file, "\tMOV %s, %.*s\n", tempvar = newname(), yyleng, yytext);
 		advance();
 	} else if(match(LP)) {
 		advance();

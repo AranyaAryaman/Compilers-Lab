@@ -12,17 +12,15 @@ DEPS = $(OBJS:.o=.d)
 CC = gcc
 
 ifeq ($(OS),Windows_NT)
-	RM = del /F /Q 
+	RM = del /F /Q
 	RMDIR = -RMDIR /S /Q
 	MKDIR = -mkdir
 	ERRIGNORE = 2>NUL || true
-	SEP=\\
 else
-	RM = rm -rf 
-	RMDIR = rm -rf 
+	RM = rm -rf
+	RMDIR = rm -rf
 	MKDIR = mkdir -p
 	ERRIGNORE = 2>/dev/null
-	SEP=/
 endif
 
 # PSEP = $(strip $(SEP))
@@ -53,10 +51,10 @@ $(BUILDDIR)%.o: $(SOURCEDIR)%.c
 -include $(DEPS)
 
 directories:
-	$(HIDE)$(MKDIR) $(subst /,$(PSEP),$(BUILDDIR)) $(ERRIGNORE)
+	$(HIDE)$(MKDIR) $(BUILDDIR) $(ERRIGNORE)
 
 # Remove all objects, dependencies and executable files generated during the build
 clean:
-	$(HIDE)$(RMDIR) $(subst /,$(PSEP),$(BUILDDIR)) $(ERRIGNORE)
+	$(HIDE)$(RMDIR) $(BUILDDIR) $(ERRIGNORE)
 	$(HIDE)$(RM) $(TARGET) $(ERRIGNORE)
 	@echo Cleaning done

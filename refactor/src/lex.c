@@ -19,11 +19,12 @@ int lex(void) {
 	int offset = 0;
 	if(yyleng % 2 == 0)
 		offset = 1;
-	if(!isprint(yytext[0]))
-		fprintf(lex_file, "Token=<          %c          >,\tID=<%2d>\n", '~', res);
-	else
+	if(!isprint(yytext[0])) {
+		fprintf(lex_file, "Token=<          ~          >,\tID=<%2d>\n", res);
+	} else {
 		fprintf(lex_file, "Token=<%*s%.*s%*s>,\tID=<%2d>\n", 10 - yyleng / 2, "", yyleng, yytext,
 				offset + 10 - yyleng / 2, "", res);
+	}
 	return res;
 }
 int lex_orig(void) {
@@ -83,28 +84,25 @@ int lex_orig(void) {
 						}
 						if(strncmp("if", buffer, 2) == 0)
 							return IF;
-						else if(strncmp("then", buffer, 4) == 0)
+						if(strncmp("then", buffer, 4) == 0)
 							return THEN;
-						else if(strncmp("while", buffer, 5) == 0)
+						if(strncmp("while", buffer, 5) == 0)
 							return WHILE;
-						else if(strncmp("do", buffer, 2) == 0)
+						if(strncmp("do", buffer, 2) == 0)
 							return DO;
-						else if(strncmp("begin", buffer, 5) == 0)
+						if(strncmp("begin", buffer, 5) == 0)
 							return BEGIN;
-						else if(strncmp("end", buffer, 3) == 0)
+						if(strncmp("end", buffer, 3) == 0)
 							return END;
-						if(isalpha(yytext[0]) || yytext[0] == '_')
+						if(isalpha(yytext[0]))
+							return ID;
+						if(yytext[0] == '_')
 							return ID;
 						for(int i = 0; i < yyleng; i++)
 							if(!isdigit(yytext[i])) {
 								fprintf(stderr, "%.*s is not a number or id\n", yyleng, yytext);
 								return INVALID;
 							}
-						// printf("#");
-						// for(int i = 0; i < yyleng; i++)
-						// 	printf("=%c", buffer[i]);
-						// printf("=\n");
-						// TODO: Distinction between number and identifier
 						return NUMBER;
 					}
 					break;
@@ -114,20 +112,16 @@ int lex_orig(void) {
 	return EOI;
 }
 
-int Lookahead = UNLEXED; /* Lookahead token  */
+int Lookahead = UNLEXED; /* Lookahead token */
 
 int match(int token) {
-	/* Return true if "token" matches the
-		current lookahead symbol.                */
-
+	/* Return true if "token" matches the current lookahead symbol. */
 	if(Lookahead == -1)
 		Lookahead = lex();
-
 	return token == Lookahead;
 }
 
 void advance(void) {
-	/* Advance the lookahead to the next
-	input symbol.                               */
+	/* Advance the lookahead to the next input symbol.*/
 	Lookahead = lex();
 }

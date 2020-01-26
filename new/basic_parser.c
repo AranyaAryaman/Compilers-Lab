@@ -1,88 +1,78 @@
 /* Basic parser, shows the structure but there's no code generation */
 
-#include <stdio.h>
 #include "lex.h"
-#include <stdlib.h>
 
-statements()
-{
-    /*  statements -> expression SEMI
-     *             |  expression SEMI statements
-     */
+#include <stdio.h>
 
-    expression();
+statements() {
+	/*  statements -> expression SEMI
+	 *             |  expression SEMI statements
+	 */
 
-    if( match( SEMI ) )
-	advance();
-    else
-        fprintf( stderr, "%d: Inserting missing semicolon\n", yylineno );
+	expression();
 
-    if( !match(EOI) )
-        statements();			/* Do another statement. */
+	if(match(SEMI))
+		advance();
+	else
+		fprintf(stderr, "%d: Inserting missing semicolon\n", yylineno);
+
+	if(!match(EOI))
+		statements(); /* Do another statement. */
 }
 
-expression()
-{
-    /* expression -> term expression' */
+expression() {
+	/* expression -> term expression' */
 
-    term();
-    expr_prime();
+	term();
+	expr_prime();
 }
 
-expr_prime()
-{
-    /* expression' -> PLUS term expression'
-     *              | epsilon
-     */
+expr_prime() {
+	/* expression' -> PLUS term expression'
+	 *              | epsilon
+	 */
 
-    if( match( PLUS ) )
-    {
-        advance();
-        term();
-        expr_prime();
-    }
+	if(match(PLUS)) {
+		advance();
+		term();
+		expr_prime();
+	}
 }
 
-term()
-{
-    /* term -> factor term' */
+term() {
+	/* term -> factor term' */
 
-    factor();
-    term_prime();
+	factor();
+	term_prime();
 }
 
-term_prime()
-{
-    /* term' -> TIMES factor term'
-     *       |   epsilon
-     */
+term_prime() {
+	/* term' -> TIMES factor term'
+	 *       |   epsilon
+	 */
 
-    if( match( MUL ) )
-    {
-        advance();
-        factor();
-        term_prime();
-    }
+	if(match(TIMES)) {
+		advance();
+		factor();
+		term_prime();
+	}
 }
 
-factor()
-{
-    /* factor   ->    NUM_OR_ID
-     *          |     LP expression RP
-     */
+factor() {
+	/* factor   ->    NUM_OR_ID
+	 *          |     LP expression RP
+	 */
 
-    if( match(NUM_OR_ID) )
-        advance();
+	if(match(NUM_OR_ID))
+		advance();
 
-    else if( match(LP) )
-    {
-        advance();
-        expression();
-        if( match(RP) )
-            advance();
-        else
-            fprintf( stderr, "%d: Mismatched parenthesis\n", yylineno);
-    }
-    else
-	fprintf( stderr, "%d Number or identifier expected\n", yylineno );
+	else if(match(LP)) {
+		advance();
+		expression();
+		if(match(RP))
+			advance();
+		else
+			fprintf(stderr, "%d: Mismatched parenthesis\n", yylineno);
+	} else
+		fprintf(stderr, "%d Number or identifier expected\n", yylineno);
 }
