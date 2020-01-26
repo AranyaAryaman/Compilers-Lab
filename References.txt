@@ -1,0 +1,17 @@
+Links to follow
+
+Official documentation-
+http://westes.github.io/flex/manual/
+
+Practical example
+http://matt.might.net/articles/standalone-lexers-with-lex/
+
+One webpage detailed manual
+ftp://ftp.gnu.org/old-gnu/Manuals/flex-2.5.4/html_mono/flex.html
+
+Great debugging guide-
+https://stackoverflow.com/questions/33645123/bnf-to-flex-bison
+
+lexer for cpp-
+https://github.com/andschwa/partial-cpp-compiler/blob/master/lexer.l
+
