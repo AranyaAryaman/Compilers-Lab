@@ -26,6 +26,7 @@ void debug(char *str __attribute((unused))) {
 }
 
 void start(void) {
+	debug("IN start");
 	// start		->	statement+
 	if(input_filename != NULL && match(EOI)) {
 		err("FILE <%s> IS EMPTY\n", input_filename);
@@ -44,6 +45,7 @@ void start(void) {
 		fprintf(output_file, "\tmov ebx, 0\n");
 		fprintf(output_file, "\tint 0x80\n");
 	}
+	debug("EXIT start");
 }
 
 void statement(void) {
@@ -65,7 +67,20 @@ void statement(void) {
 		advance();
 		check_BEGIN();
 	} else if(match(ID)) {
-		check_ID();
+		advance();
+		if(match(COL)){
+			revert_one();
+			check_ID();
+		} else {
+			revert_one();
+			tempvar = expression();
+			if(match(SEMI))
+				advance();
+			else {
+				err("Line %d: Missing semicolon\n", yylineno);
+			}
+			freename(tempvar);
+		}
 	} else {
 		tempvar = expression();
 		if(match(SEMI))

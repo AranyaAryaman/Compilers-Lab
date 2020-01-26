@@ -10,8 +10,16 @@
 #include <string.h>
 
 char *yytext = "";		  // Lexeme (not '\0'terminated)
-int yyleng = 0;			  // Lexeme length
-int yylineno = 0;		  // Input line number
+char *prev_yytext = "";
+int yyleng = 0;		   // Lexeme length
+int prev_yyleng = 0;
+int yylineno = 0;		 // Input line number
+int prev_yylineno = 0;
+char input_buffer[1024];
+char prev_input_buffer[1024];
+int lookahead = UNLEXED; /* lookahead token */
+int prev_lookahead = UNLEXED;
+int get_from_prev_buffer = 0;
 int lex_orig(void);
 // Get next lexeme
 int lex(void) {
@@ -30,7 +38,6 @@ int lex(void) {
 }
 
 int lex_orig(void) {
-	static char input_buffer[1024];
 	char *current;
 
 	current = yytext + yyleng;		  // Skip current lexeme
@@ -43,9 +50,16 @@ int lex_orig(void) {
 			 * until a nonblank line is found.
 			 */
 			current = input_buffer;
+			for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+				prev_input_buffer[i] = input_buffer[i];
+			if(get_from_prev_buffer == 1){
+				for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+					input_buffer[i] = prev_input_buffer[i];
+			}else{
 			if(fgets(input_buffer, sizeof(input_buffer), input_file) == NULL) {
 				*current = 0;
 				return EOI;
+			}
 			}
 
 			++yylineno;
@@ -114,18 +128,32 @@ int lex_orig(void) {
 	return EOI;
 }
 
-int Lookahead = UNLEXED; /* Lookahead token */
-
 int match(int token) {
 	/* Return true if "token" matches the current lookahead symbol. */
-	if(Lookahead == UNLEXED)
-		Lookahead = lex();
-	return token == Lookahead;
+	if(lookahead == UNLEXED)
+		lookahead = lex();
+	return token == lookahead;
 }
-
 void advance(void) {
 	/* Advance the lookahead to the next input symbol.*/
-	Lookahead = lex();
+	prev_lookahead = lookahead;
+	// for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+	// 	prev_input_buffer[i] = input_buffer[i];
+	prev_yyleng = yyleng;
+	prev_yylineno = yylineno;
+	prev_yytext = yytext;
+	lookahead = lex();
+}
+
+void revert_one(void) {
+	lookahead = prev_lookahead;
+	yyleng = prev_yyleng;
+	yytext = prev_yytext;
+	if(yylineno != prev_yylineno) {
+		yylineno = prev_yylineno;
+		for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+			input_buffer[i] = prev_input_buffer[i];
+	}
 }
 
 int legal_lookahead(int first_arg, ...) {
