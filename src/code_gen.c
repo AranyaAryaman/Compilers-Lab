@@ -4,7 +4,9 @@
 #include "main.h"
 #include "name.h"
 
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int label_count = 0;
@@ -19,23 +21,29 @@ char *expression();
 char *non_relational();
 char *monomial();
 char *factor();
-void debug(char *str __attribute((unused))) {
-#if _DEBUG_ == 1
-	fprintf(stderr, "%s\n", str);
-#endif
+void opt_statements();
+void debug(char *str, ...) {
+	va_list args;
+	va_start(args, str);
+	vfprintf(debug_file, str, args);
+	fprintf(debug_file, "\n");
+	va_end(args);
+	// exit(0);
 }
-
 void start(void) {
-	debug("IN start");
+	debug("ENTER start");
 	// start		->	statement+
+
 	if(input_filename != NULL && match(EOI)) {
 		err("FILE <%s> IS EMPTY\n", input_filename);
 	}
+
 	if((input_filename != NULL)) {
 		fprintf(output_file, ".global _start\n");
 		fprintf(output_file, ".section\n.text\n\n");
 		fprintf(output_file, "_start:\n");
 	}
+
 	while(!match(EOI)) {
 		statement();
 	}
@@ -68,7 +76,7 @@ void statement(void) {
 		check_BEGIN();
 	} else if(match(ID)) {
 		advance();
-		if(match(COL)){
+		if(match(COL)) {
 			revert_one();
 			check_ID();
 		} else {
@@ -83,9 +91,10 @@ void statement(void) {
 		}
 	} else {
 		tempvar = expression();
-		if(match(SEMI))
+		if(match(SEMI)) {
+			debug("MATCHED ;");
 			advance();
-		else {
+		} else {
 			err("Line %d: Missing semicolon\n", yylineno);
 		}
 		freename(tempvar);
@@ -104,18 +113,21 @@ char *expression(void) {
 	tempvar = non_relational(0);
 	if(match(EQ)) {
 		advance();
+		debug("MATCHED =");
 		tempvar2 = non_relational(0);
 		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
 		fprintf(output_file, "\tSETZ %s\n", tempvar);
 		freename(tempvar2);
 	} else if(match(LT)) {
 		advance();
+		debug("MATCHED <");
 		tempvar2 = non_relational(0);
 		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
 		fprintf(output_file, "\tSETL %s\n", tempvar);
 		freename(tempvar2);
 	} else if(match(GT)) {
 		advance();
+		debug("MATCHED >");
 		tempvar2 = non_relational(0);
 		fprintf(output_file, "\tCMP %s, %s\n", tempvar, tempvar2);
 		fprintf(output_file, "\tSETG %s\n", tempvar);
@@ -135,9 +147,11 @@ char *non_relational(int inverted) {
 	tempvar = monomial(0);
 	if(match(PLUS) || match(MINUS)) {
 		if(match(MINUS)) {
+			debug("MATCHED -");
 			sign = 1 ^ inverted;
 			inverted = 1;
 		} else {
+			debug("MATCHED +");
 			sign = 0 ^ inverted;
 			inverted = 0;
 		}
@@ -148,7 +162,7 @@ char *non_relational(int inverted) {
 		else if(sign == 0)
 			fprintf(output_file, "\tADD %s, %s\n", tempvar, tempvar2);
 		else
-			err("Check sign innon_relational");
+			err("Check sign in non_relational");		// NEVER REACHED
 		freename(tempvar2);
 		// } else if(match(MINUS)) {
 		// 	advance();
@@ -169,9 +183,11 @@ char *monomial(int inverted) {
 	tempvar = factor();
 	if(match(MUL) || match(DIV)) {
 		if(match(DIV)) {
+			debug("MATCHED /");
 			sign = 1 ^ inverted;
 			inverted = 1;
 		} else {
+			debug("MATCHED *");
 			sign = 0 ^ inverted;
 			inverted = 0;
 		}
@@ -187,19 +203,32 @@ char *monomial(int inverted) {
 	debug("EXIT monomial");
 	return tempvar;
 }
-
+int atoi_my(const char *buf, int len)		 // digits only
+{
+	int n = 0;
+	while(len--)
+		n = n * 10 + *buf++ - '0';
+	return n;
+}
 char *factor(void) {
 	debug("ENTER factor");
 	char *tempvar;
 
 	if(match(NUMBER) || match(ID)) {
+		if(match(NUMBER)) {
+			debug("MATCHED NO=%.*s", yyleng, yytext);
+		} else {
+			debug("MATCHED ID=%.*s", yyleng, yytext);
+		}
 		fprintf(output_file, "\tMOV %s, %.*s\n", tempvar = newname(), yyleng, yytext);
 		advance();
 	} else if(match(LP)) {
 		advance();
+		debug("MATCHED (");
 		tempvar = non_relational(0);
 		if(match(RP)) {
 			advance();
+			debug("MATCHED )");
 		} else {
 			err("Line %d: Mismatched parenthesis\n", yylineno);
 		}
@@ -211,6 +240,7 @@ char *factor(void) {
 }
 
 void check_IF(void) {
+	debug("MATCHED IF");
 	char *tempvar;
 	tempvar = expression();
 	fprintf(output_file, "\tCMP %s, 0\n", tempvar);
@@ -219,6 +249,7 @@ void check_IF(void) {
 	fprintf(output_file, "\tJE L%d\n", temp_label);
 	if(match(THEN)) {
 		advance();
+		debug("MATCHED THEN");
 		statement();
 		fprintf(output_file, "L%d:\n", temp_label);
 	} else {
@@ -228,6 +259,7 @@ void check_IF(void) {
 }
 
 void check_WHILE(void) {
+	debug("MATCHED WHILE");
 	char *tempvar;
 	label_count++;
 	int temp_label = label_count;
@@ -238,6 +270,7 @@ void check_WHILE(void) {
 	fprintf(output_file, "\tCMP %s, 0\n", tempvar);
 	fprintf(output_file, "\tJE L%d\n", temp_label2);
 	if(match(DO)) {
+		debug("MATCHED DO");
 		advance();
 		statement();
 		fprintf(output_file, "\tJMP L%d\n", temp_label);
@@ -247,12 +280,23 @@ void check_WHILE(void) {
 	}
 	freename(tempvar);
 }
-
-void check_BEGIN(void) {
-	while(!match(END) && !match(EOI)) {
+void opt_statements() {
+	debug("ENTER opt_statements");
+	// opt_statements	->	statement() opt_statement()
+	// 					|	[epsilon]
+	if(!match(END) && !match(EOI)) {
 		statement();
+		opt_statements();
+	} else {
+		debug("MATCHED [epsilon]");
 	}
+	debug("EXIT opt_statements");
+}
+void check_BEGIN(void) {
+	debug("MATCHED BEGIN");
+	opt_statements();
 	if(match(END)) {
+		debug("MATCHED END");
 		advance();
 	} else {
 		err("Line %d:No END clause found\n", yylineno);
@@ -264,16 +308,20 @@ void check_ID(void) {
 	char tempvar_arr[1024];
 	strncpy(tempvar_arr, yytext, yyleng);
 	tempvar_arr[yyleng] = 0;
+	debug("MATCHED ID=%s", tempvar_arr);
 	advance();
 	if(match(COL)) {
+		debug("MATCHED :");
 		advance();
 		if(match(EQ)) {
+			debug("MATCHED =");
 			advance();
 			tempvar2 = expression();
 			fprintf(output_file, "\tMOV %s, %s\n", tempvar_arr, tempvar2);
-			if(match(SEMI))
+			if(match(SEMI)) {
+				debug("MATCHED ;");
 				advance();
-			else {
+			} else {
 				err("Line %d: Missing semicolon\n", yylineno);
 			}
 		} else {

@@ -6,7 +6,7 @@
 
 enum {
 	INVALID,
-	UNLEXED,
+	DUMMY_VAL,
 	EOI,		   // End of input
 	SEMI,		   // ;
 	PLUS,		   // +

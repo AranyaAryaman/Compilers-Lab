@@ -9,6 +9,7 @@
 FILE *input_file;
 FILE *output_file;
 FILE *lex_file;
+FILE *debug_file;
 char *input_filename;
 void exit_func(void);
 
@@ -18,6 +19,7 @@ int main(int argc, char **argv) {
 	input_file = stdin;
 	lex_file = fopen("lex.txt", "w");
 	output_file = stdout;
+	debug_file = fopen("debug.txt", "w");
 	if(argc == 1) {
 		fprintf(stderr, "No input file given, falling back to stdin\nPress Ctrl+D to exit\n");
 	} else {
@@ -28,9 +30,9 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "No file found for given name, falling back to stdin\nPress Ctrl+D to exit\n");
 		} else {
 			input_filename = argv[1];
-			#if _DEBUG_ == 0
+#if _DEBUG_ == 0
 			output_file = fopen("out.s", "w");
-			#endif
+#endif
 		}
 	}
 
@@ -44,6 +46,7 @@ void exit_func(void) {
 	fclose(input_file);
 	fclose(lex_file);
 	fclose(output_file);
+	fclose(debug_file);
 }
 
 void err(char *str, ...) {
