@@ -22,7 +22,25 @@ Now run `./compiler` on same directory to get a REPL. Press Ctrl+D to exit.
 Alternatively, you can run `./compile <filename>` to give input from a file directly.
 In this case, assembly output will be stored in `out.s` file.
 
-For debug info, all lexemes are dumped into `lex.txt`.
+For debug info, all lexemes are dumped into `lex.txt`, and all non-terminal expansions are dumped in `debug.txt`.
+
+For a parse tree representation, run `python3 graph.py`. It reads debug.txt and shows a figure in matplotlib.
+`graph.py` has the following dependencies -
+- matplotlib
+- networkx
+- pygraphviz
+To install them, refer to the next section.
+
+## Install Optional Dependencies
+
+Compiler itself does not require any deps. These are for generating the parse tree.
+
+For debian based systems -
+
+```sh
+sudo apt install python3 python3-pip graphviz libgraphviz-dev pkg-config
+python3 -m pip install --user matplotlib networkx pygraphviz
+```
 
 ## Contributors
 

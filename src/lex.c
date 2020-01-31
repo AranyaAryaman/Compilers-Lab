@@ -10,27 +10,63 @@
 #include <string.h>
 
 char *yytext = "";		  // Lexeme (not '\0'terminated)
-int yyleng = 0;			  // Lexeme length
-int yylineno = 0;		  // Input line number
+char *prev_yytext = "";
+int yyleng = 0;		   // Lexeme length
+int prev_yyleng = 0;
+int yylineno = 0;		 // Input line number
+int prev_yylineno = 0;
+char input_buffer[1024];
+char prev_input_buffer[1024];
+int lookahead = DUMMY_VAL; /* lookahead token */
+int prev_lookahead = DUMMY_VAL;
+int get_from_prev_buffer = 0;
 int lex_orig(void);
 // Get next lexeme
 int lex(void) {
+	static char* enum_expand[]= {
+	"INVALID",
+	"DUMMY",
+	"EOI",		   // End of input
+	"SEMI",		   // ;
+	"PLUS",		   // +
+	"MUL",		   // *
+	"LP",		   // (
+	"RP",		   // )
+	"MINUS",	   // -
+	"DIV",		   // /
+	"LT",		   // <
+	"GT",		   // >
+	"EQ",		   // =
+	"COL",		   // :
+	"IF",		   // if
+	"THEN",		   // then
+	"WHILE",	   // while
+	"DO",		   // do
+	"BEGIN",	   // begin
+	"END",		   // end,
+	"NUMBER",	   // Decimal number
+	"ID"		   // Identifier
+}; 
 	// Proxy for lex function. Stores lex debug info into lex_file
 	int res = lex_orig();
 	int offset = 0;
 	if(yyleng % 2 == 0)
 		offset = 1;
+	int offset2 = 0;
+	int yyleng2 = strlen(enum_expand[res]);
+	if(yyleng2 % 2 == 0)
+		offset2 = 1;
 	if(!isprint(yytext[0])) {
-		fprintf(lex_file, "Token=<          ~          >,\tID=<%2d>\n", res);
+		fprintf(lex_file, "<Token, ID> = <          ~          ,%*s%s%*s>\n",10 - yyleng2 / 2, "", enum_expand[res], offset2 + 10 - yyleng2 / 2, "");
 	} else {
-		fprintf(lex_file, "Token=<%*s%.*s%*s>,\tID=<%2d>\n", 10 - yyleng / 2, "", yyleng, yytext,
-				offset + 10 - yyleng / 2, "", res);
+		fprintf(lex_file, "<Token, ID> = <%*s%.*s%*s,%*s%s%*s>\n",
+				10 - yyleng / 2, "", yyleng, yytext, offset + 10 - yyleng / 2, "",
+				10 - yyleng2 / 2, "", enum_expand[res], offset2 + 10 - yyleng2 / 2, "");
 	}
 	return res;
 }
 
 int lex_orig(void) {
-	static char input_buffer[1024];
 	char *current;
 
 	current = yytext + yyleng;		  // Skip current lexeme
@@ -43,11 +79,20 @@ int lex_orig(void) {
 			 * until a nonblank line is found.
 			 */
 			current = input_buffer;
-			if(fgets(input_buffer, sizeof(input_buffer), input_file) == NULL) {
-				*current = 0;
-				return EOI;
-			}
 
+			if(get_from_prev_buffer == 1) {
+				for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+					input_buffer[i] = prev_input_buffer[i];
+				get_from_prev_buffer = 0;
+			} else {
+				for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+					prev_input_buffer[i] = input_buffer[i];
+				if(fgets(input_buffer, sizeof(input_buffer), input_file) == NULL) {
+					*current = 0;
+					return EOI;
+				}
+			}
+			// printf("%s\n", input_buffer);
 			++yylineno;
 			while(isspace(*current))
 				++current;
@@ -114,18 +159,33 @@ int lex_orig(void) {
 	return EOI;
 }
 
-int Lookahead = UNLEXED; /* Lookahead token */
-
 int match(int token) {
 	/* Return true if "token" matches the current lookahead symbol. */
-	if(Lookahead == UNLEXED)
-		Lookahead = lex();
-	return token == Lookahead;
+	if(lookahead == DUMMY_VAL)
+		lookahead = lex();
+	return token == lookahead;
 }
-
 void advance(void) {
 	/* Advance the lookahead to the next input symbol.*/
-	Lookahead = lex();
+	prev_lookahead = lookahead;
+	// for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+	// 	prev_input_buffer[i] = input_buffer[i];
+	prev_yyleng = yyleng;
+	prev_yylineno = yylineno;
+	prev_yytext = yytext;
+	lookahead = lex();
+}
+
+void revert_one(void) {
+	lookahead = prev_lookahead;
+	yyleng = prev_yyleng;
+	yytext = prev_yytext;
+	if(yylineno != prev_yylineno) {
+		yylineno = prev_yylineno;
+		for(int i = sizeof(prev_input_buffer) - 1; i >= 0; i--)
+			input_buffer[i] = prev_input_buffer[i];
+	}
+	fseek(lex_file, -60L, SEEK_CUR);
 }
 
 int legal_lookahead(int first_arg, ...) {

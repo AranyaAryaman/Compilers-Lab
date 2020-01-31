@@ -1,5 +1,7 @@
 lex.txt
 out.txt
+temp/
+temp/**
 compiler
 *.s
 *.d

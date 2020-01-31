@@ -7,6 +7,7 @@
 extern FILE *input_file;
 extern FILE *output_file;
 extern FILE *lex_file;
+extern FILE *debug_file;
 extern char *input_filename;
 
 void err(char *str, ...);
