@@ -1,12 +1,36 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
+
+int count_macros()
+{
+	FILE *fptr;
+	int count=0;
+	char c;
+	fptr=fopen("input.txt","r");
+	if(fptr==NULL){
+		printf("couldn't find the file!\n");
+		return -1;
+	}
+	c=getc(fptr);
+	while(c!=EOF){
+		if(c=='#')
+		{
+			count++;
+		}
+		c=getc(fptr);
+	}
+	fclose(fptr);
+	return count;
+	
+}
 
 int count_lines()
 {
 	FILE *fptr;
 	int lines=0;
 	char c;
-	fptr=fopen("input2.txt","r");
+	fptr=fopen("input.txt","r");
 	if(fptr==NULL)
 	{
 		printf("Couldn't find the file!\n");
@@ -28,7 +52,7 @@ int count_comments()
 {
 	FILE *fptr;
 	int comments=0,comment_state=0;
-	fptr=fopen("input2.txt","r");
+	fptr=fopen("input.txt","r");
 	if(fptr==NULL)
 	{
 		return -1;
@@ -63,7 +87,7 @@ int count_blank()
 {
 	int blanks=0,blank_state=0;
 	FILE *fptr;
-	fptr=fopen("input2.txt","r");
+	fptr=fopen("input.txt","r");
 	if(fptr==NULL)
 	{
 		return -1;
@@ -101,5 +125,6 @@ int main()
 	printf("Number of lines		: %d\n",count_lines());
 	printf("Number of Comments		: %d\n",count_comments());
 	printf("Number of blank lines		: %d\n",count_blank());
+	printf("Number of Macro Definitions are		: %d\n",count_macros());
 	return 0;
 }
