@@ -5,6 +5,7 @@
 alpha [A-Za-z]
 digit [0-9]
 
+
 %%
 
 [ \t\n]+

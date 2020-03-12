@@ -460,7 +460,7 @@ static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "SELECT", "PROJECT", "CARPRO", "EQJN",
   "OR", "AND", "EQ", "COMMA", "ID", "NUM", "LP", "RP", "LA", "RA", "DOT",
-  "$accept", "S", "S1", "S2", "S3", "S4", "S5", "S6", "EPSILON", "NID",
+  "$accept", "S1", "S7", "S2", "S3", "S4", "S5", "S6", "EPSILON", "NID",
   "CONDITION", YY_NULLPTR
 };
 #endif
@@ -1262,14 +1262,32 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 5:
+        case 2:
 #line 9 "q2.y" /* yacc.c:1652  */
     {printf("Valid Syntax\n");exit(0);}
 #line 1269 "y.tab.c" /* yacc.c:1652  */
     break;
 
+  case 3:
+#line 9 "q2.y" /* yacc.c:1652  */
+    {printf("Valid Syntax\n");exit(0);}
+#line 1275 "y.tab.c" /* yacc.c:1652  */
+    break;
 
-#line 1273 "y.tab.c" /* yacc.c:1652  */
+  case 4:
+#line 9 "q2.y" /* yacc.c:1652  */
+    {printf("Valid Syntax\n");exit(0);}
+#line 1281 "y.tab.c" /* yacc.c:1652  */
+    break;
+
+  case 5:
+#line 9 "q2.y" /* yacc.c:1652  */
+    {printf("Valid Syntax\n");exit(0);}
+#line 1287 "y.tab.c" /* yacc.c:1652  */
+    break;
+
+
+#line 1291 "y.tab.c" /* yacc.c:1652  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
