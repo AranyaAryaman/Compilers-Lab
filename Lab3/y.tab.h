@@ -49,45 +49,39 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    ID = 258,
-    NUM = 259,
-    SELECT = 260,
-    DISTINCT = 261,
-    FROM = 262,
-    WHERE = 263,
-    LE = 264,
-    GE = 265,
-    EQ = 266,
-    NE = 267,
-    OR = 268,
-    AND = 269,
-    LIKE = 270,
-    GROUP = 271,
-    HAVING = 272,
-    ORDER = 273,
-    ASC = 274,
-    DESC = 275
+    SELECT = 258,
+    PROJECT = 259,
+    CARPRO = 260,
+    EQJN = 261,
+    OR = 262,
+    AND = 263,
+    EQ = 264,
+    COMMA = 265,
+    ID = 266,
+    NUM = 267,
+    LP = 268,
+    RP = 269,
+    LA = 270,
+    RA = 271,
+    DOT = 272
   };
 #endif
 /* Tokens.  */
-#define ID 258
-#define NUM 259
-#define SELECT 260
-#define DISTINCT 261
-#define FROM 262
-#define WHERE 263
-#define LE 264
-#define GE 265
-#define EQ 266
-#define NE 267
-#define OR 268
-#define AND 269
-#define LIKE 270
-#define GROUP 271
-#define HAVING 272
-#define ORDER 273
-#define ASC 274
-#define DESC 275
+#define SELECT 258
+#define PROJECT 259
+#define CARPRO 260
+#define EQJN 261
+#define OR 262
+#define AND 263
+#define EQ 264
+#define COMMA 265
+#define ID 266
+#define NUM 267
+#define LP 268
+#define RP 269
+#define LA 270
+#define RA 271
+#define DOT 272
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
