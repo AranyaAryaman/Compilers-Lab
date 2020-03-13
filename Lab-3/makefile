@@ -1,7 +1,6 @@
 all: 
 
 part1:
-	rm output.txt
 	flex q1_1.l
 	gcc lex.yy.c
 	./a.exe main.c 1 > pass1.txt
