@@ -1,3 +1,5 @@
+part1
+part2
 *.txt
 lex.yy.c
 *.tab.h

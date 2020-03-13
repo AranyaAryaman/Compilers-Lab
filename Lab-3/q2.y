@@ -1,52 +1,40 @@
 %{
-    #include<stdio.h>
-    #include<stdlib.h>
-	int yylex(void);
-	int yyerror(char *msg);
+#include<stdio.h>
+#include<stdlib.h>
+#include<ctype.h>
+#define DEBUG 1
+int yylex();
+int yyerror(char* msg __attribute__((unused))){}
 %}
 
-%token SELECT PROJECT CARPRO EQJN OR AND EQ COMMA ID NUM LP RP LA RA DOT
-
+%token SELECT PROJECT CARPRO EQJN OR AND EQ COMMA ID NUM LP RP LA RA DOT NEWLINE
+%start S1
 %%
-    S1: S7 | S2 | S4 | S6
-        ;
-    S7: LP ID RP CARPRO LP ID RP
-        ;
-    S2: PROJECT LA ID S3 RA LP ID RP
-        ;
-    S4: SELECT LA CONDITION S5 RA LP ID RP
-        ;
-    S6: LP ID RP EQJN LA CONDITION S5 RA LP ID RP
-        ;
+S1: S7 NEWLINE {YYACCEPT;}| S2 NEWLINE {YYACCEPT;}| S4 NEWLINE {YYACCEPT;}| S6 NEWLINE {YYACCEPT;}| error NEWLINE{YYABORT;};
 
-    S3: COMMA ID S3 | EPSILON
-        ;
-    S5: AND CONDITION S5 | OR CONDITION S5 | EPSILON
-        ;
-    EPSILON:
-        ;
-    NID: ID DOT ID
-        ;
-    CONDITION: DATA OPERATION DATA
-        ;
-    DATA: ID | NUM | NID
-        ;
-    OPERATION: LA | RA | EQ | LA EQ | RA EQ
-        ;
+S4: SELECT LA S5 RA LP ID RP ;
+S2: PROJECT LA S3 RA LP ID RP ;
+S7: LP ID RP CARPRO LP ID RP ;
+S6: LP ID RP EQJN LA S5 RA LP ID RP ;
+
+S5: S5 AND CONDITION | S5 OR CONDITION | CONDITION ;
+S3: S3 COMMA ID | ID ;
+NID: ID DOT ID ;
+CONDITION: DATA LA DATA | DATA LA EQ DATA | DATA EQ DATA | DATA RA DATA | DATA RA EQ DATA | DATA LA RA DATA ;
+DATA: ID | NUM | NID ;
 %%
 
 #include"lex.yy.c"
-#include<ctype.h>
-int yyerror(char *msg)
-{
-    printf("Invalid Syntax\n");
-    exit(0);
-}
 
-int main()
-{
-    printf("Enter the RA input:");
-    yyparse();
-    printf("Valid Syntax\n");
+int main() {
+	while(1) {
+		printf(">>>");
+		if(yyparse()) {
+			printf("Invalid Syntax\n");
+			continue;
+		}
+		printf("Valid Syntax\n");
+		// DO something here
+	}
 	return 0;
 }
