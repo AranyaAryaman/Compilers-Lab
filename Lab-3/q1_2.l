@@ -3,15 +3,17 @@
 #include <stdbool.h>
 #include <string.h>
 int func_dec = 0, var_dec = 0, func_def = 0;
-bool fdef_line = true, fdec_line = true, vdec_line = true; 
+bool fdef_line = false, fdec_line = false, vdec_line = false; 
 %}
 DATATYPE int|float|char|double|extern|long|const|void|short|auto|enum|signed|static|unsigned|FILE|bool|string
-B [ \t\n]*
+B [ \t]*
 %option noyywrap
 %%
-{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[;]       {func_dec++;}
-{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[{]       {func_def++;}
-{B}{DATATYPE}{B}[*]*[[:alnum:]]*{B}[,=\[;]       {var_dec++;}
+{B}{DATATYPE}{B}[*]*{B}[[:alnum:]]*{B}[(][.]*[)]{B}[;]       {fdec_line=true;}
+{B}{DATATYPE}{B}[*]*{B}[[:alnum:]]*{B}[(][.]*[)]{B}[{]       {fdef_line=true;}
+{B}{DATATYPE}{B}[*]*{B}[[:alnum:]]*{B}[(][.]*[)]{B}[\n][{]       {fdef_line=true;}
+{B}{DATATYPE}{B}[*]*{B}[[:alnum:]]*{B}[,=\[;]       {vdec_line=true;}
+"\n"        {if(fdef_line)func_def++; if(fdec_line)func_dec++; if(vdec_line)var_dec++; fdec_line=false; fdef_line=false; vdec_line=false;}
 .       ;
 %%
 

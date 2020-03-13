@@ -8,7 +8,9 @@
 extern char *yytext; 
 extern int yyleng;
 extern yylineno;
-int main(); int mgd();
+int uhj ;
+int main(); 
+int mgd();
 int main()
 {
 return 0;

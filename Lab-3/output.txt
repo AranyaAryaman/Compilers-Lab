@@ -1,7 +1,7 @@
 Total line count of comments is 10
-Total line count of code is 19
+Total line count of code is 21
 Total line count of macro defination is 7
 Total line count of blank lines is 3
-Total line count of variable declaration is 3
+Total line count of variable declaration is 4
 Total line count of function declaration is 2
 Total line count of function defination is 1
