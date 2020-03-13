@@ -1,4 +1,7 @@
 lex.txt
+*.txt
+lex.yy.c
+*.tab.*
 out.txt
 temp/
 temp/**
@@ -21,7 +24,8 @@ compiler
 *.dll
 *.so
 *.so.*
-*.dylib*.exe
+*.dylib
+*.exe
 *.out
 *.app
 *.i*86
