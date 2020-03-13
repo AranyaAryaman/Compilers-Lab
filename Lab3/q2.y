@@ -1,6 +1,8 @@
 %{
     #include<stdio.h>
     #include<stdlib.h>
+	int yylex(void);
+	int yyerror(char *msg);
 %}
 
 %token SELECT PROJECT CARPRO EQJN OR AND EQ COMMA ID NUM LP RP LA RA DOT
@@ -20,15 +22,15 @@
 
 #include"lex.yy.c"
 #include<ctype.h>
-
 int yyerror(char *msg)
 {
     printf("Invalid Syntax\n");
     exit(0);
 }
 
-main()
+int main()
 {
     printf("Enter the RA input:");
     yyparse();
+	return 0;
 }

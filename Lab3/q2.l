@@ -1,11 +1,10 @@
 %{
-    #include "y.tab.h"
+    #include "q2.tab.h"
 %}
 
 alpha [A-Za-z]
 digit [0-9]
-
-
+%option noyywrap
 %%
 
 [ \t\n]+
