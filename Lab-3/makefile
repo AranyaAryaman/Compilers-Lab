@@ -1,13 +1,18 @@
 all: 
 
 part1:
-	flex q1.l
+	rm output.txt
+	flex q1_1.l
 	gcc lex.yy.c
-	./a.exe main.c > out.txt
+	./a.exe main.c 1 > pass1.txt
+	./a.exe pass1.txt 0 > pass2.txt
+	flex q1_2.l
+	gcc lex.yy.c
+	./a.exe pass2.txt
 
 part2:
-	flex q2.l
-	bison q2.y
+	flex -i q2.l
+	bison -d q2.y
 	gcc q2.tab.c
 	./a.exe
 	
