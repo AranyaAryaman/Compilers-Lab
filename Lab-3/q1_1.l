@@ -3,12 +3,12 @@
 #include <stdbool.h>
 #include <string.h>
 int com_count = 0, blank = 0, total = 0, mac_def = 0;
-bool com_line = false, mdef_line = false, is_blank=true; 
+bool com_line = false, mdef_line = false, is_blank=true;
 %}
 DATATYPE int|float|char|double|extern|long|const|void|short|auto|enum|signed|static|unsigned|FILE|bool|string
 B [ \t]*
 COMMENT "/*"[.]*"*/"|""
-%option noyywrap
+// %option noyywrap
 %x Mcomment Scomment Mdec pass2
 %%
 [ \t]+      {printf(" ");}
@@ -24,7 +24,9 @@ COMMENT "/*"[.]*"*/"|""
 <Mcomment>"*"+"/"       {if(!com_line){++com_count; com_line=true;} BEGIN(INITIAL);}
 .       {mdef_line=true; is_blank=false;printf("%s", yytext);}
 %%
-
+int yywrap(){
+    return 1;
+}
 int main(int argc,char** argv){
     FILE *fh;
     if (argc == 3 && (fh = fopen(argv[1], "r")))
