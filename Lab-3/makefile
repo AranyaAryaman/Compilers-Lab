@@ -4,10 +4,9 @@ part1:
 	flex q1_1.l
 	gcc lex.yy.c
 	./a.exe main.c 1 > pass1.txt
-	./a.exe pass1.txt 0 > pass2.txt
 	flex q1_2.l
 	gcc lex.yy.c
-	./a.exe pass2.txt
+	./a.exe pass1.txt
 
 part2:
 	flex -i q2.l

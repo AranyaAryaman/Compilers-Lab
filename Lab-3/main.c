@@ -11,7 +11,8 @@ extern int yyleng;
 extern yylineno;
 int uhj ;
 
-int/*ff*/ /*t*/ /*hn*/main(); int mgd();
+int/*ff*/ /*t*/ /*hn*/main(); 
+int mgd(); int main();
 int main(){
     /* statement_block */
 	
