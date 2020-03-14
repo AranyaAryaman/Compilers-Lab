@@ -19,6 +19,13 @@ void run_project();
 void run_cartprod();
 void run_equijoin();
 
+int get_header_index(char **headerFields, int nh, char *str) {
+	for(int i = 0; i < nh; i++)
+		if(!strcmp(headerFields[i], str))
+			return i;
+	return -1;
+}
+
 void init_ds() {
 	col_num = 0;
 	cond_num = 0;
@@ -35,9 +42,10 @@ void run_sql() {
 }
 
 void run_project() {
+	int query_count = 0;
 	char tablename[MAX_STRLEN];
-	strcpy(tablename, tables[0]);
-	strcat(tablename, ".csv");
+	strncpy(tablename, tables[0], MAX_STRLEN);
+	strncat(tablename, ".csv", MAX_STRLEN - strlen(tablename) - 1);
 	CsvParser *csvparser = CsvParser_new(tablename);
 	CsvRow *row;
 	CsvRow *header = CsvParser_getHeader(csvparser);
@@ -71,6 +79,7 @@ void run_project() {
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
 		for(int i = 0; i < c; i++) {
+			query_count++;
 			printf("%s\t\t", rowFields[headers[i]]);
 		}
 		printf("\n");
@@ -78,14 +87,16 @@ void run_project() {
 	}
 	CsvParser_destroy(csvparser);
 	free(headers);
+	printf("%d rows displayed\n", query_count);
 }
 
 void run_cartprod() {
+	int query_count = 0;
 	char tablename1[MAX_STRLEN], tablename2[MAX_STRLEN];
-	strcpy(tablename1, tables[0]);
-	strcpy(tablename2, tables[1]);
-	strcat(tablename1, ".csv");
-	strcat(tablename2, ".csv");
+	strncpy(tablename1, tables[0], MAX_STRLEN);
+	strncpy(tablename2, tables[1], MAX_STRLEN);
+	strncat(tablename1, ".csv", MAX_STRLEN - strlen(tablename1) - 1);
+	strncat(tablename2, ".csv", MAX_STRLEN - strlen(tablename2) - 1);
 	CsvParser *csvparser1 = CsvParser_new(tablename1);
 	CsvRow *row1;
 	CsvRow *header1 = CsvParser_getHeader(csvparser1);
@@ -123,6 +134,7 @@ void run_cartprod() {
 		}
 		while((row2 = CsvParser_getRow(csvparser2))) {
 			char **rowFields2 = CsvParser_getFields(row2);
+			query_count++;
 			for(int j = 0; j < CsvParser_getNumFields(row1); j++)
 				printf("%s\t\t", rowFields1[j]);
 			for(int j = 0; j < CsvParser_getNumFields(row2); j++)
@@ -134,10 +146,11 @@ void run_cartprod() {
 		CsvParser_destroy_row(row1);
 	}
 	CsvParser_destroy(csvparser1);
+	printf("%d rows displayed\n", query_count);
 }
 
 void run_equijoin() {
-	// TODO chek if changes are correct in bison
+	int query_count = 0;
 	char tablename1[MAX_STRLEN], tablename2[MAX_STRLEN];
 	int ok = 0;
 	if(strcmp(tables[0], equi_tables[0]) == 0 && strcmp(tables[1], equi_tables[1]) == 0)
@@ -145,13 +158,13 @@ void run_equijoin() {
 	if(strcmp(tables[1], equi_tables[0]) == 0 && strcmp(tables[0], equi_tables[1]) == 0) {
 		char temp[25];
 
-		strcpy(temp, equi_tables[0]);
-		strcpy(equi_tables[0], equi_tables[1]);
-		strcpy(equi_tables[1], temp);
+		strncpy(temp, equi_tables[0], MAX_STRLEN);
+		strncpy(equi_tables[0], equi_tables[1], MAX_STRLEN);
+		strncpy(equi_tables[1], temp, MAX_STRLEN);
 
-		strcpy(temp, equi_id[0]);
-		strcpy(equi_id[0], equi_id[1]);
-		strcpy(equi_id[1], temp);
+		strncpy(temp, equi_id[0], MAX_STRLEN);
+		strncpy(equi_id[0], equi_id[1], MAX_STRLEN);
+		strncpy(equi_id[1], temp, MAX_STRLEN);
 
 		ok = 1;
 	}
@@ -159,10 +172,10 @@ void run_equijoin() {
 		printf("EquiJoin condition error\n");
 		return;
 	}
-	strcpy(tablename1, tables[0]);
-	strcpy(tablename2, tables[1]);
-	strcat(tablename1, ".csv");
-	strcat(tablename2, ".csv");
+	strncpy(tablename1, tables[0], MAX_STRLEN);
+	strncpy(tablename2, tables[1], MAX_STRLEN);
+	strncat(tablename1, ".csv", MAX_STRLEN - strlen(tablename1) - 1);
+	strncat(tablename2, ".csv", MAX_STRLEN - strlen(tablename2) - 1);
 	CsvParser *csvparser1 = CsvParser_new(tablename1);
 	CsvRow *row1;
 	CsvRow *header1 = CsvParser_getHeader(csvparser1);
@@ -213,6 +226,7 @@ void run_equijoin() {
 		while((row2 = CsvParser_getRow(csvparser2))) {
 			char **rowFields2 = CsvParser_getFields(row2);
 			if(!strcmp(rowFields1[h1], rowFields2[h2])) {
+				query_count++;
 				for(int j = 0; j < CsvParser_getNumFields(row1); j++)
 					printf("%s\t\t", rowFields1[j]);
 				for(int j = 0; j < CsvParser_getNumFields(row2); j++)
@@ -225,5 +239,128 @@ void run_equijoin() {
 		CsvParser_destroy_row(row1);
 	}
 	CsvParser_destroy(csvparser1);
+	printf("%d rows displayed\n", query_count);
 }
-void run_select() {}
+void run_select() {
+	int query_count = 0;
+	char tablename[MAX_STRLEN];
+	strncpy(tablename, tables[0], MAX_STRLEN);
+	strncat(tablename, ".csv", MAX_STRLEN - strlen(tablename) - 1);
+	CsvParser *csvparser = CsvParser_new(tablename);
+	CsvRow *row;
+	CsvRow *header = CsvParser_getHeader(csvparser);
+
+	if(header == NULL) {
+		printf("%s\n", CsvParser_getErrorMessage(csvparser));
+		return;
+	}
+	char **headerFields = CsvParser_getFields(header);
+	for(int i = 0; i < CsvParser_getNumFields(header); i++)
+		printf("%s\t\t", headerFields[i]);
+	printf("\n");
+
+	while((row = CsvParser_getRow(csvparser))) {
+		char **rowFields = CsvParser_getFields(row);
+		int nh = CsvParser_getNumFields(header);
+		int nr = CsvParser_getNumFields(row);
+		int res = -1;
+		for(int cond_index = 0; cond_index < cond_num; cond_index++) {
+			int t = -1;
+			char *val1;
+			char *val2;
+			int val3;
+			int val4;
+			if(cond_list[cond_index].operand_type[0] == E_STR && cond_list[cond_index].operand_type[0] == E_INT) {
+				printf("String to int comparision\n");
+				return;
+			}
+			if(cond_list[cond_index].operand_type[0] == E_INT && cond_list[cond_index].operand_type[0] == E_STR) {
+				printf("String to int comparision\n");
+				return;
+			}
+			int is_int_comparision = 0;
+			if(cond_list[cond_index].operand_type[0] == E_INT || cond_list[cond_index].operand_type[1] == E_INT)
+				is_int_comparision = 1;
+			// WARNING: var to  var comparisions are str by default
+
+			if(cond_list[cond_index].operand_type[0] == E_STR) {
+				val1 = cond_list[cond_index].str[0];
+			} else if(cond_list[cond_index].operand_type[0] == E_INT) {
+				val3 = cond_list[cond_index].num[0];
+			} else {
+				int index = get_header_index(headerFields, nh, cond_list[cond_index].str[0]);
+				if(index == -1) {
+					printf("No column by name %s\n", cond_list[cond_index].str[0]);
+					return;
+				}
+				if(is_int_comparision)
+					val3 = atoi(rowFields[index]);
+				else
+					val1 = rowFields[index];
+			}
+
+			if(cond_list[cond_index].operand_type[1] == E_STR) {
+				val2 = cond_list[cond_index].str[1];
+			} else if(cond_list[cond_index].operand_type[1] == E_INT) {
+				val4 = cond_list[cond_index].num[1];
+			} else {
+				int index = get_header_index(headerFields, nh, cond_list[cond_index].str[1]);
+				if(index == -1) {
+					printf("No column by name %s\n", cond_list[cond_index].str[1]);
+					return;
+				}
+				if(is_int_comparision)
+					val4 = atoi(rowFields[index]);
+				else
+					val2 = rowFields[index];
+			}
+
+			if(is_int_comparision) {
+				if(cond_list[cond_index].operation == E_LT)
+					t = (val3 < val4) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_LTEQ)
+					t = (val3 <= val4) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_GT)
+					t = (val3 > val4) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_GTEQ)
+					t = (val3 >= val4) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_EQ)
+					t = (val3 == val4) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_NEQ)
+					t = (val3 != val4) ? 1 : 0;
+			} else {
+				if(cond_list[cond_index].operation == E_LT)
+					t = (strcmp(val1, val2) < 0) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_LTEQ)
+					t = (strcmp(val1, val2) <= 0) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_GT)
+					t = (strcmp(val1, val2) > 0) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_GTEQ)
+					t = (strcmp(val1, val2) >= 0) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_EQ)
+					t = (strcmp(val1, val2) == 0) ? 1 : 0;
+				else if(cond_list[cond_index].operation == E_NEQ)
+					t = (strcmp(val1, val2) != 0) ? 1 : 0;
+			}
+
+			if(cond_list[cond_index].cond_join == E_OR)
+				res = res || t;
+			else if(cond_list[cond_index].cond_join == E_AND)
+				res = res && t;
+			else {
+				res = t;
+			}
+		}
+
+		if(res == 1) {
+			query_count++;
+			for(int i = 0; i < CsvParser_getNumFields(row); i++) {
+				printf("%s\t\t", rowFields[i]);
+			}
+			printf("\n");
+		}
+		CsvParser_destroy_row(row);
+	}
+	CsvParser_destroy(csvparser);
+	printf("%d rows displayed\n", query_count);
+}

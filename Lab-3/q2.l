@@ -2,8 +2,8 @@
 %%
 (?i:select)				    {return SELECT;}
 (?i:project)			    {return PROJECT;}
-(?i:cartesian_product)	    {return CARPRO;}
-(?i:equi_join)			    {return EQJN;}
+(?i:cartesian_product)	    {return CARTPROD;}
+(?i:equi_join)			    {return EQUIJOIN;}
 (?i:or)					    {return OR;}
 (?i:and) 				    {return AND;}
 [[:digit:]]+				{yylval.numdata = atoi(yytext); return NUM;}
@@ -12,8 +12,8 @@
 "("						    {return LP;}
 ")"						    {return RP;}
 ","						    {return COMMA;}
-"<"						    {return LA;}
-">"						    {return RA;}
+"<"						    {return LT;}
+">"						    {return GT;}
 "."						    {return DOT;}
 ["]                         {return DOUBLE_QUOTE;}
 [']                         {return SINGLE_QUOTE;}

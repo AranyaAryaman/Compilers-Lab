@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 CsvRow *_CsvParser_getRow(CsvParser *csvParser);
 void _CsvParser_setErrorMessage(CsvParser *csvParser, char *errorMessage);
+
 CsvParser *CsvParser_new(char *filePath) {
 	CsvParser *csvParser = (CsvParser *)malloc(sizeof(CsvParser));
 	if(filePath == NULL) {
@@ -18,21 +20,8 @@ CsvParser *CsvParser_new(char *filePath) {
 	csvParser->errMsg_ = NULL;
 	csvParser->header_ = NULL;
 	csvParser->fileHandler_ = NULL;
-	csvParser->fromString_ = 0;
-	csvParser->csvString_ = NULL;
 	csvParser->csvStringIter_ = 0;
 
-	return csvParser;
-}
-
-CsvParser *CsvParser_new_from_string(char *csvString) {
-	CsvParser *csvParser = CsvParser_new(NULL);
-	csvParser->fromString_ = 1;
-	if(csvString != NULL) {
-		int csvStringLen = strlen(csvString);
-		csvParser->csvString_ = (char *)malloc(csvStringLen + 1);
-		strcpy(csvParser->csvString_, csvString);
-	}
 	return csvParser;
 }
 
@@ -51,9 +40,6 @@ void CsvParser_destroy(CsvParser *csvParser) {
 	}
 	if(csvParser->header_ != NULL) {
 		CsvParser_destroy_row(csvParser->header_);
-	}
-	if(csvParser->csvString_ != NULL) {
-		free(csvParser->csvString_);
 	}
 	free(csvParser);
 }
@@ -93,27 +79,21 @@ CsvRow *_CsvParser_getRow(CsvParser *csvParser) {
 	int numRowRealloc = 0;
 	int acceptedFields = 64;
 	int acceptedCharsInField = 64;
-	if(csvParser->filePath_ == NULL && (!csvParser->fromString_)) {
+	if(csvParser->filePath_ == NULL) {
 		_CsvParser_setErrorMessage(csvParser, "Supplied CSV file path is NULL");
 		return NULL;
 	}
-	if(csvParser->csvString_ == NULL && csvParser->fromString_) {
-		_CsvParser_setErrorMessage(csvParser, "Supplied CSV string is NULL");
-		return NULL;
-	}
-	if(!csvParser->fromString_) {
+	if(csvParser->fileHandler_ == NULL) {
+		csvParser->fileHandler_ = fopen(csvParser->filePath_, "r");
 		if(csvParser->fileHandler_ == NULL) {
-			csvParser->fileHandler_ = fopen(csvParser->filePath_, "r");
-			if(csvParser->fileHandler_ == NULL) {
-				int errorNum = errno;
-				char *errStr = strerror(errorNum);
-				char *errMsg = (char *)malloc(1024 + strlen(errStr));
-				strcpy(errMsg, "");
-				sprintf(errMsg, "Error opening CSV file for reading: %s : %s", csvParser->filePath_, errStr);
-				_CsvParser_setErrorMessage(csvParser, errMsg);
-				free(errMsg);
-				return NULL;
-			}
+			int errorNum = errno;
+			char *errStr = strerror(errorNum);
+			char *errMsg = (char *)malloc(1024 + strlen(errStr));
+			strcpy(errMsg, "");
+			sprintf(errMsg, "Error opening CSV file for reading: %s : %s", csvParser->filePath_, errStr);
+			_CsvParser_setErrorMessage(csvParser, errMsg);
+			free(errMsg);
+			return NULL;
 		}
 	}
 	CsvRow *csvRow = (CsvRow *)malloc(sizeof(CsvRow));
@@ -127,15 +107,10 @@ CsvRow *_CsvParser_getRow(CsvParser *csvParser) {
 	int lastCharIsQuote = 0;
 	int isEndOfFile = 0;
 	while(1) {
-		char currChar = (csvParser->fromString_) ? csvParser->csvString_[csvParser->csvStringIter_] :
-												   fgetc(csvParser->fileHandler_);
+		char currChar = fgetc(csvParser->fileHandler_);
 		csvParser->csvStringIter_++;
 		int endOfFileIndicator;
-		if(csvParser->fromString_) {
-			endOfFileIndicator = (currChar == '\0');
-		} else {
-			endOfFileIndicator = feof(csvParser->fileHandler_);
-		}
+		endOfFileIndicator = feof(csvParser->fileHandler_);
 		if(endOfFileIndicator) {
 			if(currFieldCharIter == 0 && fieldIter == 0) {
 				_CsvParser_setErrorMessage(csvParser, "Reached EOF");
