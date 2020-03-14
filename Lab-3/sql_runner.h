@@ -5,6 +5,7 @@
 #define MAX_STRLEN 25
 typedef struct conditions {
 	int operation;
+	int cond_join;
 	int operand_type[2];
 	char col_name[2][MAX_STRLEN];
 	int num[2];
@@ -22,7 +23,10 @@ enum {
 	E_EQ,
 	E_NEQ,
 	E_STR,
-	E_INT
+	E_INT,
+	E_AND,
+	E_OR,
+	E_VAR
 };
 extern int stmt_type;
 extern char tables[2][MAX_STRLEN];
@@ -31,6 +35,7 @@ extern int col_num;
 extern conditions cond_list[MAX_CONDS];
 extern int cond_num;
 extern char equi_id[2][MAX_STRLEN];
+extern char equi_tables[2][MAX_STRLEN];
 void init_ds();
 void run_sql();
 void run_select();
