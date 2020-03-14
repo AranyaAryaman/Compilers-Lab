@@ -12,4 +12,4 @@ part2: clean
 	# ./part2
 
 clean:
-	rm -f q2.tab.c q2.tab.h lex.yy.c part1 part2 output.txt
+	rm -f q2.tab.c q2.tab.h lex.yy.c part1* part2* output.txt
