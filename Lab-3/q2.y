@@ -200,39 +200,38 @@ DATA: ID				{
 %%
 
 #include"lex.yy.c"
-#include"sql_runner.h"
-void test_equijoin() {
-	stmt_type = E_EQUIJOIN;
-	strcpy(tables[0], "e");
-	strcpy(tables[1], "w");
-	strcpy(equi_tables[0], "w");
-	strcpy(equi_tables[1], "e");
-	strcpy(equi_id[0], "d");
-	strcpy(equi_id[1], "b");
-	run_sql();
-}
-void test_project(){
-	stmt_type = E_PROJECT;
-	strcpy(cols[0], "b");
-	strcpy(cols[1], "a");
-	strcpy(tables[0], "e");
-	col_num = 2;
-	run_sql();
-}
-void test_cartprod(){
-	stmt_type = E_CARTPROD;
-	strcpy(tables[0], "e");
-	strcpy(tables[1], "w");
-	run_sql();
-}
-void test_select(){
-	stmt_type = E_SELECT;
+// void test_equijoin() {
+// 	stmt_type = E_EQUIJOIN;
+// 	strcpy(tables[0], "e");
+// 	strcpy(tables[1], "w");
+// 	strcpy(equi_tables[0], "w");
+// 	strcpy(equi_tables[1], "e");
+// 	strcpy(equi_id[0], "d");
+// 	strcpy(equi_id[1], "b");
+// 	run_sql();
+// }
+// void test_project(){
+// 	stmt_type = E_PROJECT;
+// 	strcpy(cols[0], "b");
+// 	strcpy(cols[1], "a");
+// 	strcpy(tables[0], "e");
+// 	col_num = 2;
+// 	run_sql();
+// }
+// void test_cartprod(){
+// 	stmt_type = E_CARTPROD;
+// 	strcpy(tables[0], "e");
+// 	strcpy(tables[1], "w");
+// 	run_sql();
+// }
+// void test_select(){
+// 	stmt_type = E_SELECT;
 
-	run_sql();
-}
+// 	run_sql();
+// }
 int main(int argc, char **argv) {
 	argc--;argv++;
-	if(!argc) {
+	// if(!argc) {
 		while(1) {
 			init_ds();
 			printf(">>> ");
@@ -243,16 +242,16 @@ int main(int argc, char **argv) {
 			printf("Valid Syntax\n");
 			run_sql();
 		}
-		return 0;
-	}
-	init_ds();
-	if(!strcmp(argv[0], "c"))
-		test_cartprod();
-	else if(!strcmp(argv[0], "p"))
-		test_project();
-	else if(!strcmp(argv[0], "e"))
-		test_equijoin();
-	else if(!strcmp(argv[0], "s"))
-	test_select();
+		// return 0;
+	// }
+	// init_ds();
+	// if(!strcmp(argv[0], "c"))
+	// 	test_cartprod();
+	// else if(!strcmp(argv[0], "p"))
+	// 	test_project();
+	// else if(!strcmp(argv[0], "e"))
+	// 	test_equijoin();
+	// else if(!strcmp(argv[0], "s"))
+	// test_select();
 	return 0;
 }
