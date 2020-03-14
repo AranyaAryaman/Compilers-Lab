@@ -6,10 +6,14 @@ part1: clean
 	# ./part1 main.c
 
 part2: clean
+	mkdir -p build
 	flex q2.l
 	bison q2.y
-	gcc q2.tab.c -o part2
+	gcc -g -c csv.c -o build/csv.o
+	gcc -g -c sql_runner.c -o build/sql_runner.o
+	gcc -g -c q2.tab.c -o build/q2.tab.o
+	gcc -g build/*.o -o part2
 	# ./part2
 
 clean:
-	rm -f q2.tab.c q2.tab.h lex.yy.c part1 part2 output.txt
+	rm -rf q2.tab.c q2.tab.h lex.yy.c part1 part2 output.txt build/
