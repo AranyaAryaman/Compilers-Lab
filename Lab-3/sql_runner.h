@@ -24,9 +24,9 @@ enum {
 	E_NEQ,
 	E_STR,
 	E_INT,
+	E_VAR,
 	E_AND,
-	E_OR,
-	E_VAR
+	E_OR
 };
 extern int stmt_type;
 extern char tables[2][MAX_STRLEN];
