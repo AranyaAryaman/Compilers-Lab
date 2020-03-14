@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 				for(int i=0; i<cond_num; i++){
 					printf("\n%d, %d, %d, %d, %s, %s, %d, %d\n", cond_list[i].operation, cond_list[i].cond_join, cond_list[i].operand_type[0], cond_list[i].operand_type[1], cond_list[i].col_name[0], cond_list[i].col_name[1], cond_list[i].num[0], cond_list[i].num[1]);
 				}
-				// run_sql();
+				run_sql();
 			}
 			return 0;
 		}
