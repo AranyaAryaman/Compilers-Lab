@@ -11,6 +11,9 @@ char tables[2][MAX_STRLEN];
 char cols[MAX_COLS][MAX_STRLEN];
 int col_num;
 conditions cond_list[MAX_CONDS];
+int cond_num;
+char equi_id[2][MAX_STRLEN];
+
 void run_select();
 void run_project();
 void run_cartprod();
@@ -90,7 +93,7 @@ void run_cartprod() {
 		printf("%s\n", CsvParser_getErrorMessage(csvparser1));
 		return;
 	}
-	if(temp_header2 == NULL){
+	if(temp_header2 == NULL) {
 		printf("%s\n", CsvParser_getErrorMessage(temp_csvparser2));
 		return;
 	}
@@ -135,6 +138,7 @@ void run_cartprod() {
 }
 
 void run_equijoin() {
+	// TODO chek if changes are correct in bison
 	char tablename1[MAX_STRLEN], tablename2[MAX_STRLEN];
 	strcpy(tablename1, tables[0]);
 	strcpy(tablename2, tables[1]);
