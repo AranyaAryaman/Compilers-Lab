@@ -1,8 +1,9 @@
-lex.txt
+part1
+part2
 *.txt
 lex.yy.c
-*.tab.*
-out.txt
+*.tab.h
+*.tab.c
 temp/
 temp/**
 compiler

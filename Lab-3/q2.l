@@ -1,28 +1,23 @@
-%{
-    #include "q2.tab.h"
-%}
-
-alpha [A-Za-z]
-digit [0-9]
 %option noyywrap
 %%
-
-[ \t\n]+
-select return SELECT;
-project return PROJECT;
-cartesian_product return CARPRO;
-equi_join return EQJN;
-or return OR;
-and return AND;
-{digit}+ return NUM;
-{alpha}({alpha}|{digit})* return ID;
-"=" return EQ;
-"(" return LP;
-")" return RP;
-"," return COMMA;
-"<" return LA;
-">" return RA;
-"." return DOT;
-. return yytext[0];
-
+(?i:select)				    {return SELECT;}
+(?i:project)			    {return PROJECT;}
+(?i:cartesian_product)	    {return CARTPROD;}
+(?i:equi_join)			    {return EQUIJOIN;}
+(?i:or)					    {return OR;}
+(?i:and) 				    {return AND;}
+[[:digit:]]+				{yylval.numdata = atoi(yytext); return NUM;}
+[[:alpha:]_]([[:alnum:]_])*	{sscanf(yytext, "%s", yylval.str); return ID;}
+"="						    {return EQ;}
+"("						    {return LP;}
+")"						    {return RP;}
+","						    {return COMMA;}
+"<"						    {return LT;}
+">"						    {return GT;}
+"."						    {return DOT;}
+["]                         {return DOUBLE_QUOTE;}
+[']                         {return SINGLE_QUOTE;}
+"\n"					    {return NEWLINE;}
+[ \t\r\v\f]+			    {}
+.       				    {return yytext[0];}
 %%
