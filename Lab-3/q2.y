@@ -32,13 +32,13 @@ members which we want and ignore all others. Who the fuck cares about optimizati
 }
 %start S1
 %%
-S1: CARTPROD_RA NEWLINE	{
+S1: CARTPROD_RA DELIM	{
 					YYACCEPT;
-}| PROJECT_RA NEWLINE {
+}| PROJECT_RA DELIM {
 					YYACCEPT;
-}| SELECT_RA NEWLINE {
+}| SELECT_RA DELIM {
 					YYACCEPT;
-}| EQUIJOIN_RA NEWLINE {
+}| EQUIJOIN_RA DELIM {
 					YYACCEPT;
 }| NEWLINE {
 					// an empty line is not invalid sntac
@@ -49,11 +49,11 @@ S1: CARTPROD_RA NEWLINE	{
 					// indicating that stream will be closed
 					printf("Exit...\n");
 					exit(0);
-}| error NEWLINE {
+}| error DELIM {
 					// Panic mode for REPL, skip to next newline
 					YYABORT;
 };
-
+DELIM: NEWLINE | ENDOF;
 SELECT_RA: SELECT LT SNAN GT LP ID RP {
 					stmt_type=E_SELECT;
 					strncpy(tables[0], $6, MAX_STRLEN);
@@ -237,8 +237,8 @@ int main(int argc, char **argv) {
 				printf("Invalid Syntax\n");
 				continue;
 			}
-			// printf("Valid Syntax\n");
-			// run_sql();
+			printf("Valid Syntax\n");
+			run_sql();
 		}
 		// return 0;
 	// }

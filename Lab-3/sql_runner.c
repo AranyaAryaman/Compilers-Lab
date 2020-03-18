@@ -13,16 +13,16 @@ char cols[MAX_COLS][MAX_STRLEN];
 char equi_id[2][MAX_STRLEN];
 char equi_tables[2][MAX_STRLEN];
 condition_ast *ast;
-
-char **headerFields;
-char **rowFields;
-
+int int_compare(int val3, int val4, int operation);
+int str_compare(char *val1, char *val2, int operation);
 int get_header_index(char **headerFields, int nh, char *str);
-int match_on(char **headerFields, char **rowFields, int nh, int nr);
+int match_on(char **headerFields, char **rowFields, int nh, int nr, condition_ast *root);
 void free_ast(condition_ast *root);
 
 condition_ast *new_node() {
-	return (condition_ast *)malloc(sizeof(condition_ast));
+	condition_ast *ret = (condition_ast *)malloc(sizeof(condition_ast));
+	memset(ret, 0, sizeof(condition_ast));		  // zero bomb all fields in ret
+	return ret;
 }
 
 int get_header_index(char **headerFields, int nh, char *str) {
@@ -247,8 +247,71 @@ void run_equijoin(void) {
 	printf("%d rows displayed\n", query_count);
 }
 
-int match_on(char **headerFields, char **rwoFields, int nh, int nr) {
-	return 1;
+int match_on(char **headerFields, char **rowFields, int nh, int nr, condition_ast *root) {
+	if(root->operation == E_AND)
+		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) &&
+				match_on(headerFields, rowFields, nh, nr, root->child[1])) ?
+				   1 :
+				   0;
+	if(root->operation == E_OR)
+		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) ||
+				match_on(headerFields, rowFields, nh, nr, root->child[1])) ?
+				   1 :
+				   0;
+	if(root->operation == E_NOT)
+		return match_on(headerFields, rowFields, nh, nr, root->child[0]) ? 0 : 1;
+
+	if(root->operand_type[0] == E_STR && root->operand_type[1] == E_INT) {
+		printf("[WARN]String to int comparision, returning false\n");
+		return 0;
+	}
+	if(root->operand_type[0] == E_INT && root->operand_type[1] == E_STR) {
+		printf("[WARN]String to int comparision, returning false\n");
+		return 0;
+	}
+	if(root->operation != E_LT && root->operation != E_LTEQ && root->operation != E_GT && root->operation != E_GTEQ &&
+	   root->operation != E_EQ && root->operation != E_NEQ)
+		printf("Unknown operator %s\n", E_TO_STR[root->operation]);
+	char *val1, *val2;
+	int val3, val4;
+	int is_int_comparision = 0;
+	if(root->operand_type[0] == E_INT || root->operand_type[1] == E_INT)
+		is_int_comparision = 1;
+	// WARNING: var to  var comparisions are str by default
+	if(root->operand_type[0] == E_STR) {
+		val1 = root->str[0];
+	} else if(root->operand_type[0] == E_INT) {
+		val3 = root->num[0];
+	} else {
+		int index = get_header_index(headerFields, nh, root->str[0]);
+		if(index == -1) {
+			printf("[WARN]No column by name %s, returning false\n", root->str[0]);
+			return 0;
+		}
+		if(is_int_comparision)
+			val3 = atoi(rowFields[index]);
+		else
+			val1 = rowFields[index];
+	}
+
+	if(root->operand_type[1] == E_STR) {
+		val2 = root->str[1];
+	} else if(root->operand_type[1] == E_INT) {
+		val4 = root->num[1];
+	} else {
+		int index = get_header_index(headerFields, nh, root->str[1]);
+		if(index == -1) {
+			printf("[WARN]No column by name %s, returning false\n", root->str[1]);
+			return 0;
+		}
+		if(is_int_comparision)
+			val4 = atoi(rowFields[index]);
+		else
+			val2 = rowFields[index];
+	}
+	if(is_int_comparision)
+		return int_compare(val3, val4, root->operation);
+	return str_compare(val1, val2, root->operation);
 }
 
 void run_select(void) {
@@ -272,7 +335,7 @@ void run_select(void) {
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
 		int res = -1;
-		res = match_on(headerFields, rowFields, CsvParser_getNumFields(header), CsvParser_getNumFields(row));
+		res = match_on(headerFields, rowFields, CsvParser_getNumFields(header), CsvParser_getNumFields(row), ast);
 		if(res == 1) {
 			query_count++;
 			for(int i = 0; i < CsvParser_getNumFields(row); i++) {
@@ -301,27 +364,27 @@ void free_ast(condition_ast *root) {
 // 	char *val2;
 // 	int val3;
 // 	int val4;
-// 	if(cond_list[cond_index].operand_type[0] == E_STR && cond_list[cond_index].operand_type[0] == E_INT) {
+// 	if(root->operand_type[0] == E_STR && root->operand_type[0] == E_INT) {
 // 		printf("String to int comparision\n");
 // 		return;
 // 	}
-// 	if(cond_list[cond_index].operand_type[0] == E_INT && cond_list[cond_index].operand_type[0] == E_STR) {
+// 	if(root->operand_type[0] == E_INT && root->operand_type[0] == E_STR) {
 // 		printf("String to int comparision\n");
 // 		return;
 // 	}
 // 	int is_int_comparision = 0;
-// 	if(cond_list[cond_index].operand_type[0] == E_INT || cond_list[cond_index].operand_type[1] == E_INT)
+// 	if(root->operand_type[0] == E_INT || root->operand_type[1] == E_INT)
 // 		is_int_comparision = 1;
 // 	// WARNING: var to  var comparisions are str by default
 
-// 	if(cond_list[cond_index].operand_type[0] == E_STR) {
-// 		val1 = cond_list[cond_index].str[0];
-// 	} else if(cond_list[cond_index].operand_type[0] == E_INT) {
-// 		val3 = cond_list[cond_index].num[0];
+// 	if(root->operand_type[0] == E_STR) {
+// 		val1 = root->str[0];
+// 	} else if(root->operand_type[0] == E_INT) {
+// 		val3 = root->num[0];
 // 	} else {
-// 		int index = get_header_index(headerFields, nh, cond_list[cond_index].str[0]);
+// 		int index = get_header_index(headerFields, nh, root->str[0]);
 // 		if(index == -1) {
-// 			printf("No column by name %s\n", cond_list[cond_index].str[0]);
+// 			printf("No column by name %s\n", root->str[0]);
 // 			return;
 // 		}
 // 		if(is_int_comparision)
@@ -330,14 +393,14 @@ void free_ast(condition_ast *root) {
 // 			val1 = rowFields[index];
 // 	}
 
-// 	if(cond_list[cond_index].operand_type[1] == E_STR) {
-// 		val2 = cond_list[cond_index].str[1];
-// 	} else if(cond_list[cond_index].operand_type[1] == E_INT) {
-// 		val4 = cond_list[cond_index].num[1];
+// 	if(root->operand_type[1] == E_STR) {
+// 		val2 = root->str[1];
+// 	} else if(root->operand_type[1] == E_INT) {
+// 		val4 = root->num[1];
 // 	} else {
-// 		int index = get_header_index(headerFields, nh, cond_list[cond_index].str[1]);
+// 		int index = get_header_index(headerFields, nh, root->str[1]);
 // 		if(index == -1) {
-// 			printf("No column by name %s\n", cond_list[cond_index].str[1]);
+// 			printf("No column by name %s\n", root->str[1]);
 // 			return;
 // 		}
 // 		if(is_int_comparision)
@@ -346,40 +409,37 @@ void free_ast(condition_ast *root) {
 // 			val2 = rowFields[index];
 // 	}
 int int_compare(int val3, int val4, int operation) {
-	int t;
 	if(operation == E_LT)
-		t = (val3 < val4) ? 1 : 0;
+		return (val3 < val4) ? 1 : 0;
 	else if(operation == E_LTEQ)
-		t = (val3 <= val4) ? 1 : 0;
+		return (val3 <= val4) ? 1 : 0;
 	else if(operation == E_GT)
-		t = (val3 > val4) ? 1 : 0;
+		return (val3 > val4) ? 1 : 0;
 	else if(operation == E_GTEQ)
-		t = (val3 >= val4) ? 1 : 0;
+		return (val3 >= val4) ? 1 : 0;
 	else if(operation == E_EQ)
-		t = (val3 == val4) ? 1 : 0;
+		return (val3 == val4) ? 1 : 0;
 	else if(operation == E_NEQ)
-		t = (val3 != val4) ? 1 : 0;
-	return t;
+		return (val3 != val4) ? 1 : 0;
 }
 int str_compare(char *val1, char *val2, int operation) {
-	int t;
 	if(operation == E_LT)
-		t = (strncmp(val1, val2, MAX_STRLEN) < 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) < 0) ? 1 : 0;
 	else if(operation == E_LTEQ)
-		t = (strncmp(val1, val2, MAX_STRLEN) <= 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) <= 0) ? 1 : 0;
 	else if(operation == E_GT)
-		t = (strncmp(val1, val2, MAX_STRLEN) > 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) > 0) ? 1 : 0;
 	else if(operation == E_GTEQ)
-		t = (strncmp(val1, val2, MAX_STRLEN) >= 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) >= 0) ? 1 : 0;
 	else if(operation == E_EQ)
-		t = (strncmp(val1, val2, MAX_STRLEN) == 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) == 0) ? 1 : 0;
 	else if(operation == E_NEQ)
-		t = (strncmp(val1, val2, MAX_STRLEN) != 0) ? 1 : 0;
+		return (strncmp(val1, val2, MAX_STRLEN) != 0) ? 1 : 0;
 }
 
-// 	if(cond_list[cond_index].cond_join == E_OR)
+// 	if(root->cond_join == E_OR)
 // 		res = res || t;
-// 	else if(cond_list[cond_index].cond_join == E_AND)
+// 	else if(root->cond_join == E_AND)
 // 		res = res && t;
 // 	else {
 // 		res = t;

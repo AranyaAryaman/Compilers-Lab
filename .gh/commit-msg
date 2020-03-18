@@ -1,0 +1,7 @@
+#!/bin/sh
+
+AUTHOR=$(git var GIT_AUTHOR_IDENT | cut -d' ' -f1 )
+DATE=$(date +"%d/%m/%Y %I:%M %^p")
+GREP_SOB="Commit by $AUTHOR on "
+SOB="Commit by $AUTHOR on $DATE"
+grep -qs "^$GREP_SOB" "$1"  || ( echo ''>>"$1" && echo "$SOB" >> "$1" )

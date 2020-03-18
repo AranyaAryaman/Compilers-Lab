@@ -19,29 +19,28 @@ typedef struct condition_ast {
 	int num[2];						// 10 20
 } condition_ast;
 
-enum {
-	E_DUMMY = 0,
-
-	E_SELECT,
-	E_CARTPROD,
-	E_EQUIJOIN,
-	E_PROJECT,
-
-	E_LT,
-	E_LTEQ,
-	E_GT,
-	E_GTEQ,
-	E_EQ,
-	E_NEQ,
-
-	E_STR,
-	E_INT,
-	E_VAR,
-
-	E_AND,
-	E_OR,
-	E_NOT
-};
+#define E_ENUM(E_FUNC)   \
+	E_FUNC(E_DUMMY)    \
+	E_FUNC(E_SELECT)   \
+	E_FUNC(E_CARTPROD) \
+	E_FUNC(E_EQUIJOIN) \
+	E_FUNC(E_PROJECT)  \
+	E_FUNC(E_LT)       \
+	E_FUNC(E_LTEQ)     \
+	E_FUNC(E_GT)       \
+	E_FUNC(E_GTEQ)     \
+	E_FUNC(E_EQ)       \
+	E_FUNC(E_NEQ)      \
+	E_FUNC(E_STR)      \
+	E_FUNC(E_INT)      \
+	E_FUNC(E_VAR)      \
+	E_FUNC(E_AND)      \
+	E_FUNC(E_OR)       \
+	E_FUNC(E_NOT)
+#define E_MAKE_ENUM(ENUM) ENUM,
+#define E_MAKE_STRING(ENUM) #ENUM,
+enum { E_ENUM(E_MAKE_ENUM) };
+static const char *E_TO_STR[] = {E_ENUM(E_MAKE_STRING)};
 extern int stmt_type;
 extern int col_num;
 extern char tables[2][MAX_STRLEN];

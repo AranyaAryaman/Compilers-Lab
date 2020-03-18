@@ -1,14 +1,16 @@
 
 # .PHONY = part1 part2
-all: part1 part2
-part1: clean
+all: part1 part2 gh
+gh:
+	@git config --local core.hooksPath .gh
+part1: clean gh
 	@echo Running Flex
 	@flex q1.l
 	@echo Building lex.yy.c
 	@gcc lex.yy.c -o part1
 	@echo 'Run using "./part1 main.c"'
 
-part2: clean
+part2: clean gh
 	@echo Creating build directory
 	@mkdir -p build
 	@echo Running Flex
