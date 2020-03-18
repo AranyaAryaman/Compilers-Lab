@@ -21,10 +21,10 @@ part2: clean
 	@gcc -g -c csv.c -o build/csv.o
 	@echo Building sql_runner.o
 	@gcc -g -c sql_runner.c -o build/sql_runner.o
-	@echo Linking everything
+	@echo Linking everything...
 	@gcc -g build/*.o -o part2
 	@echo Run using '"./part2"'
 
 clean:
-	@echo Cleaning
+	@echo Cleaning...
 	@rm -rf q2.tab.c q2.tab.h lex.yy.c part1 part2 output.txt build/

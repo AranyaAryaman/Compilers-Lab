@@ -1,202 +1,200 @@
 %{
 #include<stdio.h>
+#include<stdlib.h>
 #include<string.h>
 int yylex();
-int yyerror(char* msg) {
-	printf("%s\n", msg);
-	return 0;
-}
+int yyerror(char* msg __attribute__((unused))) {}
 #include"sql_runner.h"
 typedef struct data_ret{
 	int type;
-	char strval[MAX_STRLEN];
-	int intval;
+	char str[MAX_STRLEN];
+	int num;
 }data_ret;
+/*
+WARNING: For now, we would not focus on malloc errors, and assume it will never fail.
+On another note, FUCK UNIONS... Let's put "EVERYTHING" in a struct and use only those
+members which we want and ignore all others. Who the fuck cares about optimization!!!
+
+""""""""""""PREMATURE ABSTRACTION IS THE ROOT OF ALL EVIL""""""""""""
+*/
 %}
 
-%token SELECT PROJECT CARTPROD EQUIJOIN OR AND EQ COMMA ID NUM LP RP LT GT DOT NEWLINE SINGLE_QUOTE DOUBLE_QUOTE
+%token SELECT PROJECT CARTPROD EQUIJOIN OR AND EQ COMMA ID NUM LP RP LT GT DOT NEWLINE SINGLE_QUOTE DOUBLE_QUOTE EXM NOT ENDOF
 %type <str>			ID
-%type <numdata>		NUM
-%type <dataval>	DATA
-%type <condvar>		CONDITION
+%type <num>			NUM
+%type <data>		DATA
+%type <cond>		SNAN SA SN CONDITION
 %union{
 	char str[25];
-	int numdata;
-	data_ret dataval;
-	conditions condvar;
+	int num;
+	data_ret data;
+	condition_ast* cond; 
 }
 %start S1
 %%
-S1: S7 NEWLINE					{
-									YYACCEPT;
-								}
+S1: CARTPROD_RA NEWLINE	{
+					YYACCEPT;
+}| PROJECT_RA NEWLINE {
+					YYACCEPT;
+}| SELECT_RA NEWLINE {
+					YYACCEPT;
+}| EQUIJOIN_RA NEWLINE {
+					YYACCEPT;
+}| NEWLINE {
+					// an empty line is not invalid sntac
+					YYACCEPT;
+}| ENDOF {
+					// Safely exit on Ctrl+D
+					// Ctrl+D passes <<EOF>> to stdin,
+					// indicating that stream will be closed
+					printf("Exit...\n");
+					exit(0);
+}| error NEWLINE {
+					// Panic mode for REPL, skip to next newline
+					YYABORT;
+};
 
-	| S2 NEWLINE				{
-									YYACCEPT;
-								}
+SELECT_RA: SELECT LT SNAN GT LP ID RP {
+					stmt_type=E_SELECT;
+					strncpy(tables[0], $6, MAX_STRLEN);
+					ast = $3;
+};
 
-	| S4 NEWLINE				{
-									YYACCEPT;
-								}
+PROJECT_RA: PROJECT LT S3 GT LP ID RP {
+					stmt_type = E_PROJECT;
+					strncpy(tables[0], $6, MAX_STRLEN);
+};
 
-	| S6 NEWLINE				{
-									YYACCEPT;
-								}
-								
-	| error NEWLINE				{
-									YYABORT;
-								};
+CARTPROD_RA: LP ID RP CARTPROD LP ID RP {
+					stmt_type=E_CARTPROD;
+					strncpy(tables[0], $2, MAX_STRLEN);
+					strncpy(tables[1], $6, MAX_STRLEN);
+};
 
-S4: SELECT LT S5 GT LP ID RP	{
-									stmt_type=E_SELECT;
-									strncpy(tables[0], $6, MAX_STRLEN);
-								};
+EQUIJOIN_RA: LP ID RP EQUIJOIN LT ID DOT ID EQ ID DOT ID GT LP ID RP {
+					stmt_type=E_EQUIJOIN;
+					strncpy(tables[0], $2, MAX_STRLEN);
+					strncpy(tables[1], $15, MAX_STRLEN);
+					strncpy(equi_tables[0], $6, MAX_STRLEN);
+					strncpy(equi_tables[1], $10, MAX_STRLEN);
+					strncpy(equi_id[0], $8, MAX_STRLEN);
+					strncpy(equi_id[1], $12, MAX_STRLEN);
+};
 
-S2: PROJECT LT S3 GT LP ID RP	{
-									stmt_type=E_PROJECT;
-									strncpy(tables[0], $6, MAX_STRLEN);
-								};
+S3: S3 COMMA ID {
+					strncpy(cols[col_num], $3, MAX_STRLEN);
+					col_num++;
+}| ID {
+					strncpy(cols[col_num], $1, MAX_STRLEN);
+					col_num++;
+};
 
-S7: LP ID RP CARTPROD LP ID RP	{
-									stmt_type=E_CARTPROD;
-									strncpy(tables[0], $2, MAX_STRLEN);
-									strncpy(tables[1], $6, MAX_STRLEN);
-								};
+SNAN: SA OR SA {
+					$$ = new_node();
+					$$->operation = E_OR;
+					$$->child[0] = $1;
+					$$->child[1] = $3;	
+}| SA {
+					$$ = $1;
+};
 
-S6: LP ID RP EQUIJOIN LT ID DOT ID EQ ID DOT ID GT LP ID RP	{
-															stmt_type=E_EQUIJOIN;
-															strncpy(tables[0], $2, MAX_STRLEN);
-															strncpy(tables[1], $15, MAX_STRLEN);
-															strncpy(equi_tables[0], $6, MAX_STRLEN);
-															strncpy(equi_tables[1], $10, MAX_STRLEN);
-															strncpy(equi_id[0], $8, MAX_STRLEN);
-															strncpy(equi_id[1], $12, MAX_STRLEN);
-														};
+SA: SN AND SN {
+					$$ = new_node();
+					$$->operation = E_AND;
+					$$->child[0] = $1;
+					$$->child[1] = $3;
+}| SN {
+					$$ = $1;
+};
 
-S5: S5 AND CONDITION	{
-							cond_list[cond_num].cond_join=E_AND;
-							cond_list[cond_num].operation=$3.operation;
-							cond_list[cond_num].operand_type[0]=$3.operand_type[0];
-							cond_list[cond_num].operand_type[1]=$3.operand_type[1];
-							strncpy(cond_list[cond_num].str[0],$3.str[0],MAX_STRLEN);
-							strncpy(cond_list[cond_num].str[1],$3.str[1], MAX_STRLEN);
-							cond_list[cond_num].num[0]=$3.num[0];
-							cond_list[cond_num].num[1]=$3.num[1];
-							cond_num++;
-						}
-						
-	| S5 OR CONDITION	{
-							cond_list[cond_num].cond_join=E_OR;
-							cond_list[cond_num].operation=$3.operation;
-							cond_list[cond_num].operand_type[0]=$3.operand_type[0];
-							cond_list[cond_num].operand_type[1]=$3.operand_type[1];
-							strncpy(cond_list[cond_num].str[0],$3.str[0],MAX_STRLEN);
-							strncpy(cond_list[cond_num].str[1],$3.str[1], MAX_STRLEN);
-							cond_list[cond_num].num[0]=$3.num[0];
-							cond_list[cond_num].num[1]=$3.num[1];
-							cond_num++;
-						}
+SN: CONDITION {
+					$$ = $1;
+}| NOT CONDITION{
+					$$ = new_node();
+					$$->operation = E_NOT;
+					$$->child[0] = $2;
+};
 
-	| CONDITION			{
-							cond_list[cond_num].cond_join=E_DUMMY;
-							cond_list[cond_num].operation=$1.operation;
-							cond_list[cond_num].operand_type[0]=$1.operand_type[0];
-							cond_list[cond_num].operand_type[1]=$1.operand_type[1];
-							strncpy(cond_list[cond_num].str[0],$1.str[0],MAX_STRLEN);
-							strncpy(cond_list[cond_num].str[1],$1.str[1], MAX_STRLEN);
-							cond_list[cond_num].num[0]=$1.num[0];
-							cond_list[cond_num].num[1]=$1.num[1];
-							cond_num++;
-						};
+CONDITION: DATA LT DATA {
+					$$ = new_node();
+					$$->operation=E_LT;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $3.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $3.num;
+}| DATA LT EQ DATA {
+					$$ = new_node();
+					$$->operation=E_LTEQ;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $4.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $4.num;
+}| DATA EQ DATA {
+					$$ = new_node();
+					$$->operation=E_EQ;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $3.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $3.num;
+}| DATA GT DATA {
+					$$ = new_node();
+					$$->operation=E_GT;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $3.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $3.num;
+}| DATA GT EQ DATA {
+					$$ = new_node();
+					$$->operation=E_GTEQ;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $4.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $4.num;
+}| DATA LT GT DATA {
+					$$ = new_node();
+					$$->operation=E_NEQ;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $4.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $4.num;
+}| DATA EXM EQ DATA {
+					$$ = new_node();
+					$$->operation=E_NEQ;
+					$$->operand_type[0] = $1.type;
+					$$->operand_type[1] = $4.type;
+					strncpy($$->str[0], $1.str, MAX_STRLEN);
+					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->num[0] = $1.num;
+					$$->num[1] = $4.num;
+}| LP SNAN RP {
+					$$ = $2;
+};
 
-S3: S3 COMMA ID			{
-							strncpy(cols[col_num], $3, MAX_STRLEN);
-							col_num++;
-						}
-
-	| ID				{
-							strncpy(cols[col_num], $1, MAX_STRLEN);
-							col_num++;
-						};
-
-CONDITION: DATA LT DATA	{
-							$$.operation=E_LT;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$3.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $3.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$3.intval;
-						}
-
-	| DATA LT EQ DATA	{
-							$$.operation=E_LTEQ;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$4.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $4.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$4.intval;
-						}
-
-	| DATA EQ DATA		{
-							$$.operation=E_EQ;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$3.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $3.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$3.intval;
-						}
-
-	| DATA GT DATA		{
-							$$.operation=E_GT;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$3.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $3.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$3.intval;
-						}
-
-	| DATA GT EQ DATA	{
-							$$.operation=E_EQ;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$4.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $4.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$4.intval;
-						}
-
-	| DATA LT GT DATA	{
-							$$.operation=E_NEQ;
-							$$.operand_type[0]=$1.type;
-							$$.operand_type[1]=$4.type;
-							strncpy($$.str[0], $1.strval, MAX_STRLEN);
-							strncpy($$.str[1], $4.strval, MAX_STRLEN);
-							$$.num[0]=$1.intval;
-							$$.num[1]=$4.intval;
-						};
-
-DATA: ID				{
-							$$.type=E_VAR;
-							strncpy($$.strval, $1, MAX_STRLEN);
-						}
-
-	| NUM				{
-							$$.type=E_INT;
-							$$.intval=$1;
-						}
-	| SINGLE_QUOTE ID SINGLE_QUOTE	{
-										$$.type=E_STR;
-										strncpy($$.strval, $2, MAX_STRLEN);
-									}
-
-	| DOUBLE_QUOTE ID DOUBLE_QUOTE	{
-										$$.type=E_STR;
-										strncpy($$.strval, $2, MAX_STRLEN);
-									};
+DATA:ID {
+					$$.type=E_VAR;
+					strncpy($$.str, $1, MAX_STRLEN);
+}| NUM {
+					$$.type=E_INT;
+					$$.num=$1;
+}| SINGLE_QUOTE ID SINGLE_QUOTE {
+					$$.type=E_STR;
+					strncpy($$.str, $2, MAX_STRLEN);
+}| DOUBLE_QUOTE ID DOUBLE_QUOTE {
+					$$.type=E_STR;
+					strncpy($$.str, $2, MAX_STRLEN);
+};
 %%
 
 #include"lex.yy.c"
@@ -239,8 +237,8 @@ int main(int argc, char **argv) {
 				printf("Invalid Syntax\n");
 				continue;
 			}
-			printf("Valid Syntax\n");
-			run_sql();
+			// printf("Valid Syntax\n");
+			// run_sql();
 		}
 		// return 0;
 	// }

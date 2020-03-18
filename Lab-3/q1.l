@@ -1,16 +1,25 @@
 %{
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
-int com_count = 0, blank = 0, total = 0, mac_def = 0;
-bool com_line = false, mdef_line = false, is_blank=true, k=false;
-int func_dec = 0, var_dec = 0, func_def = 0;
-bool fdef_line = false, fdec_line = false, vdec_line = false; 
-bool in_pass2 = false;
+int k=0;
+int blank = 0;
+int total = 0;
+int mac_def = 0;
+int var_dec = 0;
+int com_line = 0;
+int func_dec = 0;
+int func_def = 0;
+int in_pass2 = 0;
+int is_blank = 1;
+int com_count = 0;
+int fdec_line = 0;
+int fdef_line = 0;
+int mdef_line = 0;
+int vdec_line = 0; 
 FILE *inter_file;// = fopen("inter_file.txt", "w");
 // %option noyywrap
 %}
-DATATYPE int|float|char|double|extern|long|const|void|short|auto|enum|signed|static|unsigned|FILE|bool|string
+DATATYPE int|float|char|double|extern|long|const|void|short|auto|enum|signed|static|unsigned|FILE|int|string
 B [ \t]*
 COMMENT "/*"[.]*"*/"|""
 %x Mcomment Scomment Mdec pass2
@@ -20,27 +29,27 @@ COMMENT "/*"[.]*"*/"|""
 					}
 
 "\n"[ \t]*			{
-						mdef_line=false;
-						com_line=false;
+						mdef_line=0;
+						com_line=0;
 						total++;
 						if(is_blank)
 							blank++;
 						else
 							fprintf(inter_file, "\n");
-						is_blank=true;
-						k=false;
+						is_blank=1;
+						k=0;
 					}
 
 "#"					{
 						if(!mdef_line)
 							mac_def++;
-						is_blank=false;
+						is_blank=0;
 						fprintf(inter_file, "%s", yytext);
 					}
 
 "//"				{
 						BEGIN(Scomment);
-						k=true;
+						k=1;
 					}
 
 <Scomment>[^\n]*	{/*eat anything that's not \n */}
@@ -49,16 +58,16 @@ COMMENT "/*"[.]*"*/"|""
 						total++;
 						if(!com_line)
 							com_count++;
-						com_line=false;
-						is_blank=true;
+						com_line=0;
+						is_blank=1;
 						BEGIN(INITIAL);
-						k=false;
+						k=0;
 					}
 
 "/*"				{
 						BEGIN(Mcomment);
-						is_blank=false;
-						k=true;
+						is_blank=0;
+						k=1;
 					}
 
 <Mcomment>[^*\n]*		{/* eat anything that's not a '*' */}
@@ -69,30 +78,30 @@ COMMENT "/*"[.]*"*/"|""
 							total++;
 							if(!com_line)
 								com_count++;
-							com_line=false;
+							com_line=0;
 						}
 						
 <Mcomment>"*"+"/"		{
 							if(!com_line) {
 								com_count++;
-								com_line=true;
+								com_line=1;
 							}
 							BEGIN(INITIAL);
 						}
 
 .						{
-							mdef_line=true;
-							is_blank=false;
+							mdef_line=1;
+							is_blank=0;
 							fprintf(inter_file, "%s", yytext);
 						}
 
-<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[;]			{fdec_line=true;}
+<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[;]			{fdec_line=1;}
 
-<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[{]			{fdef_line=true;}
+<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[{]			{fdef_line=1;}
 
-<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[\n][{]		{fdef_line=true;}
+<pass2>{B}{DATATYPE}{B}[[:alnum:]]*{B}[(][.]*[)]{B}[\n][{]		{fdef_line=1;}
 
-<pass2>{B}{DATATYPE}{B}[*]*[[:alnum:]]*{B}[,=\[;]				{vdec_line=true;}
+<pass2>{B}{DATATYPE}{B}[*]*[[:alnum:]]*{B}[,=\[;]				{vdec_line=1;}
 
 <pass2>\n		{
 					if(fdef_line)
@@ -101,9 +110,9 @@ COMMENT "/*"[.]*"*/"|""
 						func_dec++;
 					if(vdec_line)
 						var_dec++;
-					fdec_line=false;
-					fdef_line=false;
-					vdec_line=false;
+					fdec_line=0;
+					fdef_line=0;
+					vdec_line=0;
 				}
 
 <pass2>.		{}
@@ -111,7 +120,7 @@ COMMENT "/*"[.]*"*/"|""
 int yywrap(){
 	if(in_pass2){
 		fclose(inter_file);
-		{if(fdef_line)func_def++; if(fdec_line)func_dec++; if(vdec_line)var_dec++; fdec_line=false; fdef_line=false; vdec_line=false;}
+		{if(fdef_line)func_def++; if(fdec_line)func_dec++; if(vdec_line)var_dec++; fdec_line=0; fdef_line=0; vdec_line=0;}
 		printf("Total line count of variable declaration is %d\n", var_dec);
 		printf("Total line count of function declaration is %d\n", func_dec);
 		printf("Total line count of function defination is %d\n", func_def);
@@ -130,7 +139,7 @@ int yywrap(){
 		inter_file = fopen("inter_file.txt", "r");
 		yyin = inter_file;
 		BEGIN(pass2);
-		in_pass2 = true;
+		in_pass2 = 1;
 		return 0;
 	}
 }
