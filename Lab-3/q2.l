@@ -8,7 +8,7 @@
 (?i:and) 				    {return AND;}
 (?i:not)                    {return NOT;}
 [[:digit:]]+				{yylval.num = atoi(yytext);return NUM;}
-[[:alpha:]_]([[:alnum:]_])*	{strncpy(yylval.str, yytext, MAX_STRLEN);return ID;}
+[[:alpha:]_]([[:alnum:]_])*	{yylval.str = str_duplicate(yytext);return ID;}
 "="						    {return EQ;}
 "("						    {return LP;}
 ")"						    {return RP;}

@@ -22,7 +22,6 @@ void gc_init() {
 	}
 	memset(ptr_arr, 0, sizeof(gc_ptr) * size);
 	init_done = 1;
-	atexit(gc_destroy);
 }
 
 void *gc_malloc(size_t s) {

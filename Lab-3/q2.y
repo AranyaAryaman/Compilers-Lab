@@ -4,6 +4,7 @@
 #include<string.h>
 
 #include"gc.h"
+#include"str.h"
 #include"sql_runner.h"
 
 int yylex();
@@ -11,16 +12,9 @@ int yyerror(char* msg __attribute__((unused))) {}
 
 typedef struct data_ret{
 	int type;
-	char str[MAX_STRLEN];
+	char *str;
 	int num;
 }data_ret;
-/*
-WARNING: For now, we would not focus on malloc errors, and assume it will never fail.
-On another note, FUCK UNIONS... Let's put "EVERYTHING" in a struct and use only those
-members which we want and ignore all others. Who the fuck cares about optimization!!!
-
-""""""""""""PREMATURE ABSTRACTION IS THE ROOT OF ALL EVIL""""""""""""
-*/
 %}
 
 %token SELECT PROJECT CARTPROD EQUIJOIN
@@ -37,7 +31,7 @@ members which we want and ignore all others. Who the fuck cares about optimizati
 %type <cond>		SNAN SA SN CONDITION
 %type <clq_node>	COMMALIST
 %union{
-	char str[25];
+	char *str;
 	int num;
 	data_ret data;
 	ast* cond; 
@@ -68,41 +62,41 @@ S1: CARTPROD_RA DELIM	{
 };
 DELIM: NEWLINE | ENDOF;
 SELECT_RA: SELECT LT SNAN GT LP ID RP {
-					stmt_type=E_SELECT;
-					strncpy(tables[0], $6, MAX_STRLEN);
+					stmt_type = E_SELECT;
+					tables[0] = str_duplicate($6);
 					ast_root = $3;
 };
 
 PROJECT_RA: PROJECT LT COMMALIST GT LP ID RP {
 					stmt_type = E_PROJECT;
-					strncpy(tables[0], $6, MAX_STRLEN);
+					tables[0] = str_duplicate($6);
 					clq_head = $3;
 
 };
 
 CARTPROD_RA: LP ID RP CARTPROD LP ID RP {
-					stmt_type=E_CARTPROD;
-					strncpy(tables[0], $2, MAX_STRLEN);
-					strncpy(tables[1], $6, MAX_STRLEN);
+					stmt_type = E_CARTPROD;
+					tables[0] = str_duplicate($2);
+					tables[1] = str_duplicate($6);
 };
 
 EQUIJOIN_RA: LP ID RP EQUIJOIN LT ID DOT ID EQ ID DOT ID GT LP ID RP {
-					stmt_type=E_EQUIJOIN;
-					strncpy(tables[0], $2, MAX_STRLEN);
-					strncpy(tables[1], $15, MAX_STRLEN);
-					strncpy(equi_tables[0], $6, MAX_STRLEN);
-					strncpy(equi_tables[1], $10, MAX_STRLEN);
-					strncpy(equi_id[0], $8, MAX_STRLEN);
-					strncpy(equi_id[1], $12, MAX_STRLEN);
+					stmt_type = E_EQUIJOIN;
+					tables[0] = str_duplicate($2);
+					tables[1] = str_duplicate($15);
+					equi_tables[0] = str_duplicate($6);
+					equi_tables[1] = str_duplicate($10);
+					equi_id[0] = str_duplicate($8);
+					equi_id[1] = str_duplicate($12);
 };
 
 COMMALIST: COMMALIST COMMA ID {
 					$$ = new_clq_node();
-					strncpy($$->str, $3, MAX_STRLEN);
+					$$->str = str_duplicate($3);
 					$$->next = $1;
 }| ID {
 					$$ = new_clq_node();
-					strncpy($$->str, $1, MAX_STRLEN);
+					$$->str = str_duplicate($1);
 					$$->next = NULL;
 };
 
@@ -134,65 +128,65 @@ SN: CONDITION {
 
 CONDITION: DATA LT DATA {
 					$$ = new_ast_node();
-					$$->operation=E_LT;
+					$$->operation = E_LT;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($3.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA LT EQ DATA {
 					$$ = new_ast_node();
-					$$->operation=E_LTEQ;
+					$$->operation = E_LTEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($4.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA EQ DATA {
 					$$ = new_ast_node();
-					$$->operation=E_EQ;
+					$$->operation = E_EQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($3.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA GT DATA {
 					$$ = new_ast_node();
-					$$->operation=E_GT;
+					$$->operation = E_GT;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $3.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($3.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA GT EQ DATA {
 					$$ = new_ast_node();
-					$$->operation=E_GTEQ;
+					$$->operation = E_GTEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($4.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA LT GT DATA {
 					$$ = new_ast_node();
-					$$->operation=E_NEQ;
+					$$->operation = E_NEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($4.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA EXM EQ DATA {
 					$$ = new_ast_node();
-					$$->operation=E_NEQ;
+					$$->operation = E_NEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					strncpy($$->str[0], $1.str, MAX_STRLEN);
-					strncpy($$->str[1], $4.str, MAX_STRLEN);
+					$$->str[0] = str_duplicate($1.str);
+					$$->str[1] = str_duplicate($4.str);
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| LP SNAN RP {
@@ -200,17 +194,21 @@ CONDITION: DATA LT DATA {
 };
 
 DATA:ID {
-					$$.type=E_VAR;
-					strncpy($$.str, $1, MAX_STRLEN);
+					$$.type = E_VAR;
+					$$.str = str_duplicate($1);
+					$$.num = 0;
 }| NUM {
-					$$.type=E_INT;
-					$$.num=$1;
+					$$.type = E_INT;
+					$$.str = str_duplicate("");
+					$$.num = $1;
 }| SINGLE_QUOTE ID SINGLE_QUOTE {
-					$$.type=E_STR;
-					strncpy($$.str, $2, MAX_STRLEN);
+					$$.type = E_STR;
+					$$.str = str_duplicate($2);
+					$$.num = 0;
 }| DOUBLE_QUOTE ID DOUBLE_QUOTE {
-					$$.type=E_STR;
-					strncpy($$.str, $2, MAX_STRLEN);
+					$$.type = E_STR;
+					$$.str = str_duplicate($2);
+					$$.num = 0;
 };
 %%
 
@@ -219,8 +217,8 @@ DATA:ID {
 int main(int argc, char **argv) {
 	argc--;argv++;
 	gc_init();
+	atexit(gc_destroy);
 	while(1) {
-		init_ds();
 		printf(">>> ");
 		if(yyparse()) {
 			printf("Invalid Syntax\n");

@@ -3,24 +3,22 @@
 
 #include "sql_runner.h"
 
-#define MAX_COLS 10
-#define MAX_STRLEN 25
 typedef struct ast {
 	int operation;		  // or and not >= <= > < = <> != (both relational and logical)
 
 	// use this for intermediate nodes
 	// (those with relational (and or not) operators)
-	struct ast *child[2];		   // more conditions
+	struct ast *child[2];		 // more conditions
 
 	// and this for leaf nodes
 	// (those with logical (>= <= > < = <> !=) operators)
-	int operand_type[2];			// int str var
-	char str[2][MAX_STRLEN];		// salary name
-	int num[2];						// 10 20
+	int operand_type[2];		// int str var
+	char *str[2];				// salary name
+	int num[2];					// 10 20
 } ast;
 
-typedef struct clq{
-	char str[MAX_STRLEN];
+typedef struct clq {
+	char *str;
 	struct clq *next;
 } clq;
 
@@ -51,16 +49,14 @@ typedef struct clq{
 // a macro which converts `value` to `"value",`
 #define E_MAKE_STRING(ENUM) #ENUM,
 
-enum {
-	E_ENUM(E_MAKE_ENUM)
-};
+enum { E_ENUM(E_MAKE_ENUM) };
 static const char *E_TO_STR[] = {E_ENUM(E_MAKE_STRING)};
 
 //******** *** ********
 extern int stmt_type;
-extern char tables[2][MAX_STRLEN];
-extern char equi_id[2][MAX_STRLEN];
-extern char equi_tables[2][MAX_STRLEN];
+extern char *tables[2];
+extern char *equi_id[2];
+extern char *equi_tables[2];
 extern ast *ast_root;
 clq *clq_head;
 

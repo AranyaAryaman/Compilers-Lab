@@ -2,42 +2,58 @@
 
 #include "csv.h"
 #include "gc.h"
+#include "str.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int stmt_type;
-char tables[2][MAX_STRLEN];
-char equi_id[2][MAX_STRLEN];
-char equi_tables[2][MAX_STRLEN];
+char *tables[2];
+char *equi_id[2];
+char *equi_tables[2];
 ast *ast_root;
 clq *clq_head;
 int int_compare(int val3, int val4, int operation);
 int str_compare(char *val1, char *val2, int operation);
 int get_header_index(char **headerFields, int nh, char *str);
 int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root);
-void free_ast(ast *root);
-void free_clq(clq *root);
 void rev_clq();
+int ast_ok(char **headerFields, int nh, ast *root);
+
+int ast_ok(char **headerFields, int nh, ast *root) {
+	if(root->operation == E_AND)
+		return (ast_ok(headerFields, nh, root->child[0]) + ast_ok(headerFields, nh, root->child[1]) == 2) ? 1 : 0;
+	if(root->operation == E_OR)
+		return (ast_ok(headerFields, nh, root->child[0]) + ast_ok(headerFields, nh, root->child[1]) == 2) ? 1 : 0;
+	if(root->operation == E_NOT)
+		return ast_ok(headerFields, nh, root->child[0]) ? 1 : 0;
+	int ok = 1;
+	if(root->operand_type[0] == E_VAR && get_header_index(headerFields, nh, root->str[0]) == -1) {
+		printf("[ERRR]No column by name %s\n", root->str[0]);
+		ok = 0;
+	}
+
+	if(root->operand_type[1] == E_VAR && get_header_index(headerFields, nh, root->str[1]) == -1) {
+		printf("[ERRR]No column by name %s\n", root->str[1]);
+		ok = 0;
+	}
+	return ok;
+}
 
 void rev_clq() {
 	clq *current = clq_head;
 	clq *prev = NULL, *next = NULL;
 
 	while(current != NULL) {
-		// Store next
 		next = current->next;
-
-		// Reverse current node's pointer
 		current->next = prev;
-
-		// Move pointers one position ahead.
 		prev = current;
 		current = next;
 	}
 	clq_head = prev;
 }
+
 ast *new_ast_node() {
 	ast *ret = (ast *)gc_malloc(sizeof(ast));
 	memset(ret, 0, sizeof(ast));		// zero bomb all fields in ret
@@ -52,12 +68,10 @@ clq *new_clq_node() {
 
 int get_header_index(char **headerFields, int nh, char *str) {
 	for(int i = 0; i < nh; i++)
-		if(!strncmp(headerFields[i], str, MAX_STRLEN))
+		if(!strcmp(headerFields[i], str))
 			return i;
 	return -1;
 }
-
-void init_ds(void) {}
 
 void run_sql(void) {
 	switch(stmt_type) {
@@ -72,9 +86,7 @@ void run_sql(void) {
 
 void run_project(void) {
 	int query_count = 0;
-	char tablename[MAX_STRLEN];
-	strncpy(tablename, tables[0], MAX_STRLEN);
-	strncat(tablename, ".csv", MAX_STRLEN - strlen(tablename) - 1);
+	char *tablename = str_concat(tables[0], ".csv");
 	CsvParser *csvparser = CsvParser_new(tablename);
 	CsvRow *row;
 	CsvRow *header = CsvParser_getHeader(csvparser);
@@ -125,17 +137,14 @@ void run_project(void) {
 	}
 	CsvParser_destroy(csvparser);
 	// free(headers_arr);
-	free_clq(clq_head);
+	// free_clq(clq_head);
 	printf("%d rows displayed\n", query_count);
 }
 
 void run_cartprod(void) {
 	int query_count = 0;
-	char tablename1[MAX_STRLEN], tablename2[MAX_STRLEN];
-	strncpy(tablename1, tables[0], MAX_STRLEN);
-	strncpy(tablename2, tables[1], MAX_STRLEN);
-	strncat(tablename1, ".csv", MAX_STRLEN - strlen(tablename1) - 1);
-	strncat(tablename2, ".csv", MAX_STRLEN - strlen(tablename2) - 1);
+	char *tablename1 = str_concat(tables[0], ".csv");
+	char *tablename2 = str_concat(tables[1], ".csv");
 	CsvParser *csvparser1 = CsvParser_new(tablename1);
 	CsvRow *row1;
 	CsvRow *header1 = CsvParser_getHeader(csvparser1);
@@ -190,20 +199,20 @@ void run_cartprod(void) {
 
 void run_equijoin(void) {
 	int query_count = 0;
-	char tablename1[MAX_STRLEN], tablename2[MAX_STRLEN];
+	char *tablename1, *tablename2;
 	int ok = 0;
 	if(strcmp(tables[0], equi_tables[0]) == 0 && strcmp(tables[1], equi_tables[1]) == 0)
 		ok = 1;
 	if(strcmp(tables[1], equi_tables[0]) == 0 && strcmp(tables[0], equi_tables[1]) == 0) {
-		char temp[25];
+		char *temp;
 
-		strncpy(temp, equi_tables[0], MAX_STRLEN);
-		strncpy(equi_tables[0], equi_tables[1], MAX_STRLEN);
-		strncpy(equi_tables[1], temp, MAX_STRLEN);
+		temp = equi_tables[0];
+		equi_tables[0] = equi_tables[1];
+		equi_tables[1] = temp;
 
-		strncpy(temp, equi_id[0], MAX_STRLEN);
-		strncpy(equi_id[0], equi_id[1], MAX_STRLEN);
-		strncpy(equi_id[1], temp, MAX_STRLEN);
+		temp = equi_id[0];
+		equi_id[0] = equi_id[1];
+		equi_id[1] = temp;
 
 		ok = 1;
 	}
@@ -211,10 +220,8 @@ void run_equijoin(void) {
 		printf("EquiJoin condition error\n");
 		return;
 	}
-	strncpy(tablename1, tables[0], MAX_STRLEN);
-	strncpy(tablename2, tables[1], MAX_STRLEN);
-	strncat(tablename1, ".csv", MAX_STRLEN - strlen(tablename1) - 1);
-	strncat(tablename2, ".csv", MAX_STRLEN - strlen(tablename2) - 1);
+	tablename1 = str_concat(tables[0], ".csv");
+	tablename2 = str_concat(tables[1], ".csv");
 	CsvParser *csvparser1 = CsvParser_new(tablename1);
 	CsvRow *row1;
 	CsvRow *header1 = CsvParser_getHeader(csvparser1);
@@ -350,9 +357,7 @@ int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 
 void run_select(void) {
 	int query_count = 0;
-	char tablename[MAX_STRLEN];
-	strncpy(tablename, tables[0], MAX_STRLEN);
-	strncat(tablename, ".csv", MAX_STRLEN - strlen(tablename) - 1);
+	char *tablename = str_concat(tables[0], ".csv");
 	CsvParser *csvparser = CsvParser_new(tablename);
 	CsvRow *row;
 	CsvRow *header = CsvParser_getHeader(csvparser);
@@ -362,6 +367,8 @@ void run_select(void) {
 		return;
 	}
 	char **headerFields = CsvParser_getFields(header);
+	if(!ast_ok(headerFields, CsvParser_getNumFields(header), ast_root))
+		return;
 	for(int i = 0; i < CsvParser_getNumFields(header); i++)
 		printf("%s\t\t", headerFields[i]);
 	printf("\n");
@@ -380,26 +387,8 @@ void run_select(void) {
 		CsvParser_destroy_row(row);
 	}
 	CsvParser_destroy(csvparser);
-	free_ast(ast_root);
+	// free_ast(ast_root);
 	printf("%d rows displayed\n", query_count);
-}
-
-void free_ast(ast *root) {
-	if(root->operation == E_OR || root->operation == E_AND || root->operation == E_NOT) {
-		if(root->operation != E_NOT)
-			free_ast(root->child[1]);
-		free_ast(root->child[0]);
-	}
-	// free(root);
-}
-
-void free_clq(clq *head) {
-	clq *temp = head;
-	while(temp != NULL) {
-		head = head->next;
-		// free(temp);
-		temp = head;
-	}
 }
 
 int int_compare(int val3, int val4, int operation) {
@@ -419,15 +408,33 @@ int int_compare(int val3, int val4, int operation) {
 
 int str_compare(char *val1, char *val2, int operation) {
 	if(operation == E_LT)
-		return (strncmp(val1, val2, MAX_STRLEN) < 0) ? 1 : 0;
+		return (strcmp(val1, val2) < 0) ? 1 : 0;
 	else if(operation == E_LTEQ)
-		return (strncmp(val1, val2, MAX_STRLEN) <= 0) ? 1 : 0;
+		return (strcmp(val1, val2) <= 0) ? 1 : 0;
 	else if(operation == E_GT)
-		return (strncmp(val1, val2, MAX_STRLEN) > 0) ? 1 : 0;
+		return (strcmp(val1, val2) > 0) ? 1 : 0;
 	else if(operation == E_GTEQ)
-		return (strncmp(val1, val2, MAX_STRLEN) >= 0) ? 1 : 0;
+		return (strcmp(val1, val2) >= 0) ? 1 : 0;
 	else if(operation == E_EQ)
-		return (strncmp(val1, val2, MAX_STRLEN) == 0) ? 1 : 0;
+		return (strcmp(val1, val2) == 0) ? 1 : 0;
 	else if(operation == E_NEQ)
-		return (strncmp(val1, val2, MAX_STRLEN) != 0) ? 1 : 0;
+		return (strcmp(val1, val2) != 0) ? 1 : 0;
 }
+
+// void free_ast(ast *root) {
+// 	if(root->operation == E_OR || root->operation == E_AND || root->operation == E_NOT) {
+// 		if(root->operation != E_NOT)
+// 			free_ast(root->child[1]);
+// 		free_ast(root->child[0]);
+// 	}
+// 	// free(root);
+// }
+
+// void free_clq(clq *head) {
+// 	clq *temp = head;
+// 	while(temp != NULL) {
+// 		head = head->next;
+// 		// free(temp);
+// 		temp = head;
+// 	}
+// }
