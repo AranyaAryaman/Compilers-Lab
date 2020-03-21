@@ -23,6 +23,8 @@ part2: clean gh
 	@gcc -g -c csv.c -o build/csv.o
 	@echo Building sql_runner.o
 	@gcc -g -c sql_runner.c -o build/sql_runner.o
+	@echo Building gc.o
+	@gcc -g -c gc.c -o build/gc.o
 	@echo Linking everything...
 	@gcc -g build/*.o -o part2
 	@echo Run using '"./part2"'

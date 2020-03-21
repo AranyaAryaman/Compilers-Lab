@@ -1,40 +1,63 @@
 #include "sql_runner.h"
 
 #include "csv.h"
+#include "gc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int stmt_type;
-int col_num;
 char tables[2][MAX_STRLEN];
-char cols[MAX_COLS][MAX_STRLEN];
 char equi_id[2][MAX_STRLEN];
 char equi_tables[2][MAX_STRLEN];
-condition_ast *ast;
+ast *ast_root;
+clq *clq_head;
 int int_compare(int val3, int val4, int operation);
 int str_compare(char *val1, char *val2, int operation);
 int get_header_index(char **headerFields, int nh, char *str);
-int match_on(char **headerFields, char **rowFields, int nh, int nr, condition_ast *root);
-void free_ast(condition_ast *root);
+int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root);
+void free_ast(ast *root);
+void free_clq(clq *root);
+void rev_clq();
 
-condition_ast *new_node() {
-	condition_ast *ret = (condition_ast *)malloc(sizeof(condition_ast));
-	memset(ret, 0, sizeof(condition_ast));		  // zero bomb all fields in ret
+void rev_clq() {
+	clq *current = clq_head;
+	clq *prev = NULL, *next = NULL;
+
+	while(current != NULL) {
+		// Store next
+		next = current->next;
+
+		// Reverse current node's pointer
+		current->next = prev;
+
+		// Move pointers one position ahead.
+		prev = current;
+		current = next;
+	}
+	clq_head = prev;
+}
+ast *new_ast_node() {
+	ast *ret = (ast *)gc_malloc(sizeof(ast));
+	memset(ret, 0, sizeof(ast));		// zero bomb all fields in ret
+	return ret;
+}
+
+clq *new_clq_node() {
+	clq *ret = (clq *)gc_malloc(sizeof(clq));
+	memset(ret, 0, sizeof(clq));
 	return ret;
 }
 
 int get_header_index(char **headerFields, int nh, char *str) {
 	for(int i = 0; i < nh; i++)
-		if(!strcmp(headerFields[i], str))
+		if(!strncmp(headerFields[i], str, MAX_STRLEN))
 			return i;
 	return -1;
 }
 
-void init_ds(void) {
-	col_num = 0;
-}
+void init_ds(void) {}
 
 void run_sql(void) {
 	switch(stmt_type) {
@@ -44,6 +67,7 @@ void run_sql(void) {
 		case E_EQUIJOIN: run_equijoin(); break;
 		default: break;
 	}
+	gc_collect();
 }
 
 void run_project(void) {
@@ -60,38 +84,48 @@ void run_project(void) {
 		return;
 	}
 	char **headerFields = CsvParser_getFields(header);
-	int *headers = (int *)malloc(sizeof(int) * CsvParser_getNumFields(header));
+	int nh = CsvParser_getNumFields(header);
+	int *headers_arr = (int *)gc_malloc(sizeof(int) * nh);
+	memset(headers_arr, 0, sizeof(int) * nh);
 	int c = 0;
-	int found = 0;
-	for(int j = 0; j < col_num; j++) {
-		found = 0;
-		for(int i = 0; i < CsvParser_getNumFields(header); i++)
-			if(strcmp(cols[j], headerFields[i]) == 0) {
-				headers[c++] = i;
-				found = 1;
-			}
-		if(!found) {
-			printf("\033[01;31mERROR:\033[00mColumn %s not found for projection\n", cols[j]);
-			free(headers);
+	int c2 = -1;
+	rev_clq();
+	clq *temp = clq_head;
+	while(temp != NULL) {
+		c2++;
+		int index = get_header_index(headerFields, nh, temp->str);
+		if(index == -1) {
+			printf("Column %s not found for projection\n", temp->str);
+			// free(headers_arr);
 			CsvParser_destroy(csvparser);
 			return;
 		}
+		if(headers_arr[index] < nh) {
+			headers_arr[c] += index;
+			headers_arr[index] += nh;
+			c++;
+		} else {
+			printf("[WARN]Duplicate fields in project, skipping %s(#%d)\n", temp->str, c2);
+		}
+		temp = temp->next;
 	}
+
 	for(int i = 0; i < c; i++)
-		printf("%s\t\t", headerFields[headers[i]]);
+		printf("%s\t\t", headerFields[headers_arr[i] % nh]);
 	printf("\n");
 
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
 		for(int i = 0; i < c; i++) {
 			query_count++;
-			printf("%s\t\t", rowFields[headers[i]]);
+			printf("%s\t\t", rowFields[headers_arr[i] % nh]);
 		}
 		printf("\n");
 		CsvParser_destroy_row(row);
 	}
 	CsvParser_destroy(csvparser);
-	free(headers);
+	// free(headers_arr);
+	free_clq(clq_head);
 	printf("%d rows displayed\n", query_count);
 }
 
@@ -247,7 +281,7 @@ void run_equijoin(void) {
 	printf("%d rows displayed\n", query_count);
 }
 
-int match_on(char **headerFields, char **rowFields, int nh, int nr, condition_ast *root) {
+int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 	if(root->operation == E_AND)
 		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) &&
 				match_on(headerFields, rowFields, nh, nr, root->child[1])) ?
@@ -335,7 +369,7 @@ void run_select(void) {
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
 		int res = -1;
-		res = match_on(headerFields, rowFields, CsvParser_getNumFields(header), CsvParser_getNumFields(row), ast);
+		res = match_on(headerFields, rowFields, CsvParser_getNumFields(header), CsvParser_getNumFields(row), ast_root);
 		if(res == 1) {
 			query_count++;
 			for(int i = 0; i < CsvParser_getNumFields(row); i++) {
@@ -346,68 +380,28 @@ void run_select(void) {
 		CsvParser_destroy_row(row);
 	}
 	CsvParser_destroy(csvparser);
-	free_ast(ast);
+	free_ast(ast_root);
 	printf("%d rows displayed\n", query_count);
 }
 
-void free_ast(condition_ast *root) {
+void free_ast(ast *root) {
 	if(root->operation == E_OR || root->operation == E_AND || root->operation == E_NOT) {
 		if(root->operation != E_NOT)
 			free_ast(root->child[1]);
 		free_ast(root->child[0]);
 	}
-	free(root);
+	// free(root);
 }
-// for(int cond_index = 0; cond_index < cond_num; cond_index++) {
-// 	int t = -1;
-// 	char *val1;
-// 	char *val2;
-// 	int val3;
-// 	int val4;
-// 	if(root->operand_type[0] == E_STR && root->operand_type[0] == E_INT) {
-// 		printf("String to int comparision\n");
-// 		return;
-// 	}
-// 	if(root->operand_type[0] == E_INT && root->operand_type[0] == E_STR) {
-// 		printf("String to int comparision\n");
-// 		return;
-// 	}
-// 	int is_int_comparision = 0;
-// 	if(root->operand_type[0] == E_INT || root->operand_type[1] == E_INT)
-// 		is_int_comparision = 1;
-// 	// WARNING: var to  var comparisions are str by default
 
-// 	if(root->operand_type[0] == E_STR) {
-// 		val1 = root->str[0];
-// 	} else if(root->operand_type[0] == E_INT) {
-// 		val3 = root->num[0];
-// 	} else {
-// 		int index = get_header_index(headerFields, nh, root->str[0]);
-// 		if(index == -1) {
-// 			printf("No column by name %s\n", root->str[0]);
-// 			return;
-// 		}
-// 		if(is_int_comparision)
-// 			val3 = atoi(rowFields[index]);
-// 		else
-// 			val1 = rowFields[index];
-// 	}
+void free_clq(clq *head) {
+	clq *temp = head;
+	while(temp != NULL) {
+		head = head->next;
+		// free(temp);
+		temp = head;
+	}
+}
 
-// 	if(root->operand_type[1] == E_STR) {
-// 		val2 = root->str[1];
-// 	} else if(root->operand_type[1] == E_INT) {
-// 		val4 = root->num[1];
-// 	} else {
-// 		int index = get_header_index(headerFields, nh, root->str[1]);
-// 		if(index == -1) {
-// 			printf("No column by name %s\n", root->str[1]);
-// 			return;
-// 		}
-// 		if(is_int_comparision)
-// 			val4 = atoi(rowFields[index]);
-// 		else
-// 			val2 = rowFields[index];
-// 	}
 int int_compare(int val3, int val4, int operation) {
 	if(operation == E_LT)
 		return (val3 < val4) ? 1 : 0;
@@ -422,6 +416,7 @@ int int_compare(int val3, int val4, int operation) {
 	else if(operation == E_NEQ)
 		return (val3 != val4) ? 1 : 0;
 }
+
 int str_compare(char *val1, char *val2, int operation) {
 	if(operation == E_LT)
 		return (strncmp(val1, val2, MAX_STRLEN) < 0) ? 1 : 0;
@@ -436,12 +431,3 @@ int str_compare(char *val1, char *val2, int operation) {
 	else if(operation == E_NEQ)
 		return (strncmp(val1, val2, MAX_STRLEN) != 0) ? 1 : 0;
 }
-
-// 	if(root->cond_join == E_OR)
-// 		res = res || t;
-// 	else if(root->cond_join == E_AND)
-// 		res = res && t;
-// 	else {
-// 		res = t;
-// 	}
-// }
