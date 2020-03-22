@@ -14,7 +14,7 @@ typedef struct ast {
 	// (those with logical (>= <= > < = <> !=) operators)
 	int operand_type[2];		// int str var
 	char *str[2];				// salary name
-	int num[2];					// 10 20
+	double num[2];					// 10 20
 } ast;
 
 typedef struct clq {

@@ -27,7 +27,7 @@ typedef struct data_ret{
 
 %type <str>			QUOTED_STRING
 %type <str>			ID
-%type <num>			NUM
+%type <num>		NUM
 %type <data>		DATA
 %type <cond>		SNAN SA SN CONDITION
 %type <clq_node>	COMMALIST
@@ -35,7 +35,7 @@ typedef struct data_ret{
 	char *str;
 	double num;
 	data_ret data;
-	ast* cond; 
+	ast* cond;
 	clq *clq_node;
 }
 %start S1
@@ -64,44 +64,44 @@ S1: CARTPROD_RA DELIM	{
 DELIM: NEWLINE | ENDOF;
 SELECT_RA: SELECT LT SNAN GT LP ID RP {
 					stmt_type = E_SELECT;
-					tables[0] = str_duplicate($6);
+					tables[0] = $6;
 					ast_root = $3;
 };
 
 PROJECT_RA: PROJECT LT COMMALIST GT LP ID RP {
 					stmt_type = E_PROJECT;
-					tables[0] = str_duplicate($6);
+					tables[0] = $6;
 					clq_head = $3;
 
 };
 
 CARTPROD_RA: LP ID RP CARTPROD LP ID RP {
 					stmt_type = E_CARTPROD;
-					tables[0] = str_duplicate($2);
-					tables[1] = str_duplicate($6);
+					tables[0] = $2;
+					tables[1] = $6;
 };
 
 EQUIJOIN_RA: LP ID RP EQUIJOIN LT ID DOT ID EQ ID DOT ID GT LP ID RP {
 					stmt_type = E_EQUIJOIN;
-					tables[0] = str_duplicate($2);
-					tables[1] = str_duplicate($15);
-					equi_tables[0] = str_duplicate($6);
-					equi_tables[1] = str_duplicate($10);
-					equi_id[0] = str_duplicate($8);
-					equi_id[1] = str_duplicate($12);
+					tables[0] = $2;
+					tables[1] = $15;
+					equi_tables[0] = $6;
+					equi_tables[1] = $10;
+					equi_id[0] = $8;
+					equi_id[1] = $12;
 };
 
 COMMALIST: COMMALIST COMMA ID {
 					$$ = new_clq_node();
-					$$->str = str_duplicate($3);
+					$$->str = $3;
 					$$->next = $1;
 }| ID {
 					$$ = new_clq_node();
-					$$->str = str_duplicate($1);
+					$$->str = $1;
 					$$->next = NULL;
 };
 
-SNAN: SA OR SA {
+SNAN: SNAN OR SA {
 					$$ = new_ast_node();
 					$$->operation = E_OR;
 					$$->child[0] = $1;
@@ -110,7 +110,7 @@ SNAN: SA OR SA {
 					$$ = $1;
 };
 
-SA: SN AND SN {
+SA: SA AND SN {
 					$$ = new_ast_node();
 					$$->operation = E_AND;
 					$$->child[0] = $1;
@@ -132,8 +132,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_LT;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($3.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $3.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA LT EQ DATA {
@@ -141,8 +141,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_LTEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($4.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $4.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA EQ DATA {
@@ -150,8 +150,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_EQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($3.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $3.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA GT DATA {
@@ -159,8 +159,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_GT;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $3.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($3.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $3.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $3.num;
 }| DATA GT EQ DATA {
@@ -168,8 +168,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_GTEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($4.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $4.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA LT GT DATA {
@@ -177,8 +177,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_NEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($4.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $4.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| DATA EXM EQ DATA {
@@ -186,8 +186,8 @@ CONDITION: DATA LT DATA {
 					$$->operation = E_NEQ;
 					$$->operand_type[0] = $1.type;
 					$$->operand_type[1] = $4.type;
-					$$->str[0] = str_duplicate($1.str);
-					$$->str[1] = str_duplicate($4.str);
+					$$->str[0] = $1.str;
+					$$->str[1] = $4.str;
 					$$->num[0] = $1.num;
 					$$->num[1] = $4.num;
 }| LP SNAN RP {
@@ -196,18 +196,14 @@ CONDITION: DATA LT DATA {
 
 DATA:ID {
 					$$.type = E_VAR;
-					$$.str = str_duplicate($1);
-					$$.num = 0;
+					$$.str = $1;
 }| NUM {
 					$$.type = E_NUM;
-					$$.str = str_duplicate("");
 					$$.num = $1;
 }| QUOTED_STRING {
 					$$.type = E_STR;
-					$$.str = str_duplicate($1+1);
+					$$.str = $1+1;
 					$$.str[strlen($$.str)-1] = 0;
-					printf("%s\n", $$.str);
-					$$.num = 0;
 };
 %%
 

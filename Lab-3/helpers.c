@@ -39,10 +39,6 @@ int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 		val3 = root->num[0];
 	} else {
 		int index = get_header_index(headerFields, nh, root->str[0]);
-		if(index == -1) {
-			printf("[WARN]No column by name %s, returning false\n", root->str[0]);
-			return 0;
-		}
 		val3 = atof(rowFields[index]);
 		val1 = rowFields[index];
 	}
@@ -54,10 +50,6 @@ int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 		val4 = root->num[1];
 	} else {
 		int index = get_header_index(headerFields, nh, root->str[1]);
-		if(index == -1) {
-			printf("[WARN]No column by name %s, returning false\n", root->str[1]);
-			return 0;
-		}
 		val4 = atof(rowFields[index]);
 		val2 = rowFields[index];
 	}
