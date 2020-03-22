@@ -2,6 +2,7 @@
 
 #include "csv.h"
 #include "gc.h"
+#include "helpers.h"
 #include "str.h"
 
 #include <stdio.h>
@@ -9,50 +10,13 @@
 #include <string.h>
 
 int stmt_type;
+
 char *tables[2];
 char *equi_id[2];
 char *equi_tables[2];
+
 ast *ast_root;
 clq *clq_head;
-int int_compare(int val3, int val4, int operation);
-int str_compare(char *val1, char *val2, int operation);
-int get_header_index(char **headerFields, int nh, char *str);
-int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root);
-void rev_clq();
-int ast_ok(char **headerFields, int nh, ast *root);
-
-int ast_ok(char **headerFields, int nh, ast *root) {
-	if(root->operation == E_AND)
-		return (ast_ok(headerFields, nh, root->child[0]) + ast_ok(headerFields, nh, root->child[1]) == 2) ? 1 : 0;
-	if(root->operation == E_OR)
-		return (ast_ok(headerFields, nh, root->child[0]) + ast_ok(headerFields, nh, root->child[1]) == 2) ? 1 : 0;
-	if(root->operation == E_NOT)
-		return ast_ok(headerFields, nh, root->child[0]) ? 1 : 0;
-	int ok = 1;
-	if(root->operand_type[0] == E_VAR && get_header_index(headerFields, nh, root->str[0]) == -1) {
-		printf("[ERRR]No column by name %s\n", root->str[0]);
-		ok = 0;
-	}
-
-	if(root->operand_type[1] == E_VAR && get_header_index(headerFields, nh, root->str[1]) == -1) {
-		printf("[ERRR]No column by name %s\n", root->str[1]);
-		ok = 0;
-	}
-	return ok;
-}
-
-void rev_clq() {
-	clq *current = clq_head;
-	clq *prev = NULL, *next = NULL;
-
-	while(current != NULL) {
-		next = current->next;
-		current->next = prev;
-		prev = current;
-		current = next;
-	}
-	clq_head = prev;
-}
 
 ast *new_ast_node() {
 	ast *ret = (ast *)gc_malloc(sizeof(ast));
@@ -64,13 +28,6 @@ clq *new_clq_node() {
 	clq *ret = (clq *)gc_malloc(sizeof(clq));
 	memset(ret, 0, sizeof(clq));
 	return ret;
-}
-
-int get_header_index(char **headerFields, int nh, char *str) {
-	for(int i = 0; i < nh; i++)
-		if(!strcmp(headerFields[i], str))
-			return i;
-	return -1;
 }
 
 void run_sql(void) {
@@ -101,7 +58,7 @@ void run_project(void) {
 	memset(headers_arr, 0, sizeof(int) * nh);
 	int c = 0;
 	int c2 = -1;
-	rev_clq();
+	clq_head = rev_clq(clq_head);
 	clq *temp = clq_head;
 	while(temp != NULL) {
 		c2++;
@@ -288,73 +245,6 @@ void run_equijoin(void) {
 	printf("%d rows displayed\n", query_count);
 }
 
-int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
-	if(root->operation == E_AND)
-		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) &&
-				match_on(headerFields, rowFields, nh, nr, root->child[1])) ?
-				   1 :
-				   0;
-	if(root->operation == E_OR)
-		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) ||
-				match_on(headerFields, rowFields, nh, nr, root->child[1])) ?
-				   1 :
-				   0;
-	if(root->operation == E_NOT)
-		return match_on(headerFields, rowFields, nh, nr, root->child[0]) ? 0 : 1;
-
-	if(root->operand_type[0] == E_STR && root->operand_type[1] == E_INT) {
-		printf("[WARN]String to int comparision, returning false\n");
-		return 0;
-	}
-	if(root->operand_type[0] == E_INT && root->operand_type[1] == E_STR) {
-		printf("[WARN]String to int comparision, returning false\n");
-		return 0;
-	}
-	if(root->operation != E_LT && root->operation != E_LTEQ && root->operation != E_GT && root->operation != E_GTEQ &&
-	   root->operation != E_EQ && root->operation != E_NEQ)
-		printf("Unknown operator %s\n", E_TO_STR[root->operation]);
-	char *val1, *val2;
-	int val3, val4;
-	int is_int_comparision = 0;
-	if(root->operand_type[0] == E_INT || root->operand_type[1] == E_INT)
-		is_int_comparision = 1;
-	// WARNING: var to  var comparisions are str by default
-	if(root->operand_type[0] == E_STR) {
-		val1 = root->str[0];
-	} else if(root->operand_type[0] == E_INT) {
-		val3 = root->num[0];
-	} else {
-		int index = get_header_index(headerFields, nh, root->str[0]);
-		if(index == -1) {
-			printf("[WARN]No column by name %s, returning false\n", root->str[0]);
-			return 0;
-		}
-		if(is_int_comparision)
-			val3 = atoi(rowFields[index]);
-		else
-			val1 = rowFields[index];
-	}
-
-	if(root->operand_type[1] == E_STR) {
-		val2 = root->str[1];
-	} else if(root->operand_type[1] == E_INT) {
-		val4 = root->num[1];
-	} else {
-		int index = get_header_index(headerFields, nh, root->str[1]);
-		if(index == -1) {
-			printf("[WARN]No column by name %s, returning false\n", root->str[1]);
-			return 0;
-		}
-		if(is_int_comparision)
-			val4 = atoi(rowFields[index]);
-		else
-			val2 = rowFields[index];
-	}
-	if(is_int_comparision)
-		return int_compare(val3, val4, root->operation);
-	return str_compare(val1, val2, root->operation);
-}
-
 void run_select(void) {
 	int query_count = 0;
 	char *tablename = str_concat(tables[0], ".csv");
@@ -390,51 +280,3 @@ void run_select(void) {
 	// free_ast(ast_root);
 	printf("%d rows displayed\n", query_count);
 }
-
-int int_compare(int val3, int val4, int operation) {
-	if(operation == E_LT)
-		return (val3 < val4) ? 1 : 0;
-	else if(operation == E_LTEQ)
-		return (val3 <= val4) ? 1 : 0;
-	else if(operation == E_GT)
-		return (val3 > val4) ? 1 : 0;
-	else if(operation == E_GTEQ)
-		return (val3 >= val4) ? 1 : 0;
-	else if(operation == E_EQ)
-		return (val3 == val4) ? 1 : 0;
-	else if(operation == E_NEQ)
-		return (val3 != val4) ? 1 : 0;
-}
-
-int str_compare(char *val1, char *val2, int operation) {
-	if(operation == E_LT)
-		return (strcmp(val1, val2) < 0) ? 1 : 0;
-	else if(operation == E_LTEQ)
-		return (strcmp(val1, val2) <= 0) ? 1 : 0;
-	else if(operation == E_GT)
-		return (strcmp(val1, val2) > 0) ? 1 : 0;
-	else if(operation == E_GTEQ)
-		return (strcmp(val1, val2) >= 0) ? 1 : 0;
-	else if(operation == E_EQ)
-		return (strcmp(val1, val2) == 0) ? 1 : 0;
-	else if(operation == E_NEQ)
-		return (strcmp(val1, val2) != 0) ? 1 : 0;
-}
-
-// void free_ast(ast *root) {
-// 	if(root->operation == E_OR || root->operation == E_AND || root->operation == E_NOT) {
-// 		if(root->operation != E_NOT)
-// 			free_ast(root->child[1]);
-// 		free_ast(root->child[0]);
-// 	}
-// 	// free(root);
-// }
-
-// void free_clq(clq *head) {
-// 	clq *temp = head;
-// 	while(temp != NULL) {
-// 		head = head->next;
-// 		// free(temp);
-// 		temp = head;
-// 	}
-// }

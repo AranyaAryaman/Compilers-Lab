@@ -38,11 +38,12 @@ typedef struct clq {
 	E_FUNC(E_EQ)       \
 	E_FUNC(E_NEQ)      \
 	E_FUNC(E_STR)      \
-	E_FUNC(E_INT)      \
+	E_FUNC(E_NUM)      \
 	E_FUNC(E_VAR)      \
 	E_FUNC(E_AND)      \
 	E_FUNC(E_OR)       \
-	E_FUNC(E_NOT)
+	E_FUNC(E_NOT)      \
+	E_FUNC(E_MACRO_COUNT)
 
 // a macro which converts `value` to `value,`
 #define E_MAKE_ENUM(ENUM) ENUM,
@@ -53,14 +54,14 @@ enum { E_ENUM(E_MAKE_ENUM) };
 static const char *E_TO_STR[] = {E_ENUM(E_MAKE_STRING)};
 
 //******** *** ********
+
 extern int stmt_type;
 extern char *tables[2];
 extern char *equi_id[2];
 extern char *equi_tables[2];
 extern ast *ast_root;
-clq *clq_head;
+extern clq *clq_head;
 
-void init_ds();
 void run_sql();
 void run_select();
 void run_project();

@@ -27,6 +27,8 @@ part2: clean gh
 	@gcc -g -c gc.c -o build/gc.o
 	@echo Building str.o
 	@gcc -g -c str.c -o build/str.o
+	@echo Building helpers.o
+	@gcc -g -c helpers.c -o build/helpers.o
 	@echo Linking everything...
 	@gcc -g build/*.o -o part2
 	@echo Run using '"./part2"'

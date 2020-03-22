@@ -13,18 +13,19 @@ int yyerror(char* msg __attribute__((unused))) {}
 typedef struct data_ret{
 	int type;
 	char *str;
-	int num;
+	double num;
 }data_ret;
 %}
 
 %token SELECT PROJECT CARTPROD EQUIJOIN
 %token OR AND NOT
-%token SINGLE_QUOTE DOUBLE_QUOTE
+%token QUOTED_STRING
 %token EQ LT GT EXM
 %token NEWLINE ENDOF
 %token ID NUM
 %token COMMA DOT LP RP
 
+%type <str>			QUOTED_STRING
 %type <str>			ID
 %type <num>			NUM
 %type <data>		DATA
@@ -32,7 +33,7 @@ typedef struct data_ret{
 %type <clq_node>	COMMALIST
 %union{
 	char *str;
-	int num;
+	double num;
 	data_ret data;
 	ast* cond; 
 	clq *clq_node;
@@ -198,16 +199,14 @@ DATA:ID {
 					$$.str = str_duplicate($1);
 					$$.num = 0;
 }| NUM {
-					$$.type = E_INT;
+					$$.type = E_NUM;
 					$$.str = str_duplicate("");
 					$$.num = $1;
-}| SINGLE_QUOTE ID SINGLE_QUOTE {
+}| QUOTED_STRING {
 					$$.type = E_STR;
-					$$.str = str_duplicate($2);
-					$$.num = 0;
-}| DOUBLE_QUOTE ID DOUBLE_QUOTE {
-					$$.type = E_STR;
-					$$.str = str_duplicate($2);
+					$$.str = str_duplicate($1+1);
+					$$.str[strlen($$.str)-1] = 0;
+					printf("%s\n", $$.str);
 					$$.num = 0;
 };
 %%
