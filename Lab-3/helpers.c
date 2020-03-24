@@ -6,14 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// int to_int(char *str, int *ok) {
-// 	char *p;
-// 	int ret = strtol(str, &p, 10);
-// 	if(ok != 0)
-// 		*ok = (*p == 0) ? 1 : 0;
-// 	return ret;
-// }
-
 int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 	if(root->operation == E_AND)
 		return (match_on(headerFields, rowFields, nh, nr, root->child[0]) &&
@@ -30,31 +22,20 @@ int match_on(char **headerFields, char **rowFields, int nh, int nr, ast *root) {
 	if(root->operation != E_LT && root->operation != E_LTEQ && root->operation != E_GT && root->operation != E_GTEQ &&
 	   root->operation != E_EQ && root->operation != E_NEQ)
 		printf("Unknown operator %s\n", E_TO_STR[root->operation]);
-	char *val1, *val2;
-	double val3, val4;
-	if(root->operand_type[0] == E_STR) {
-		val1 = root->str[0];
-		val3 = atof(root->str[0]);
-	} else if(root->operand_type[0] == E_NUM) {
-		val3 = root->num[0];
-	} else {
+	char *val1 = root->str[0];
+	
+	char *val2=root->str[1];
+	if(root->operand_type[0] == E_VAR) {
 		int index = get_header_index(headerFields, nh, root->str[0]);
-		val3 = atof(rowFields[index]);
 		val1 = rowFields[index];
 	}
 
-	if(root->operand_type[1] == E_STR) {
-		val2 = root->str[1];
-		val4 = atof(root->str[1]);
-	} else if(root->operand_type[1] == E_NUM) {
-		val4 = root->num[1];
-	} else {
+	if(root->operand_type[1] == E_VAR) {
 		int index = get_header_index(headerFields, nh, root->str[1]);
-		val4 = atof(rowFields[index]);
 		val2 = rowFields[index];
 	}
 	if(root->operand_type[0] == E_NUM || root->operand_type[1] == E_NUM)
-		return num_compare(val3, val4, root->operation);
+		return num_compare(atof(val1), atof(val2), root->operation);
 	return str_compare(val1, val2, root->operation);
 }
 

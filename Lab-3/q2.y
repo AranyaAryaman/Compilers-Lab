@@ -13,7 +13,6 @@ int yyerror(char* msg __attribute__((unused))) {}
 typedef struct data_ret{
 	int type;
 	char *str;
-	double num;
 }data_ret;
 %}
 
@@ -26,14 +25,12 @@ typedef struct data_ret{
 %token COMMA DOT LP RP
 
 %type <str>			QUOTED_STRING
-%type <str>			ID
-%type <num>		NUM
+%type <str>			ID NUM 
 %type <data>		DATA
 %type <cond>		SNAN SA SN CONDITION
 %type <clq_node>	COMMALIST
 %union{
 	char *str;
-	double num;
 	data_ret data;
 	ast* cond;
 	clq *clq_node;
@@ -134,8 +131,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $3.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $3.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $3.num;
 }| DATA LT EQ DATA {
 					$$ = new_ast_node();
 					$$->operation = E_LTEQ;
@@ -143,8 +138,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $4.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $4.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $4.num;
 }| DATA EQ DATA {
 					$$ = new_ast_node();
 					$$->operation = E_EQ;
@@ -152,8 +145,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $3.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $3.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $3.num;
 }| DATA GT DATA {
 					$$ = new_ast_node();
 					$$->operation = E_GT;
@@ -161,8 +152,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $3.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $3.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $3.num;
 }| DATA GT EQ DATA {
 					$$ = new_ast_node();
 					$$->operation = E_GTEQ;
@@ -170,8 +159,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $4.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $4.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $4.num;
 }| DATA LT GT DATA {
 					$$ = new_ast_node();
 					$$->operation = E_NEQ;
@@ -179,8 +166,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $4.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $4.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $4.num;
 }| DATA EXM EQ DATA {
 					$$ = new_ast_node();
 					$$->operation = E_NEQ;
@@ -188,8 +173,6 @@ CONDITION: DATA LT DATA {
 					$$->operand_type[1] = $4.type;
 					$$->str[0] = $1.str;
 					$$->str[1] = $4.str;
-					$$->num[0] = $1.num;
-					$$->num[1] = $4.num;
 }| LP SNAN RP {
 					$$ = $2;
 };
@@ -199,7 +182,7 @@ DATA:ID {
 					$$.str = $1;
 }| NUM {
 					$$.type = E_NUM;
-					$$.num = $1;
+					$$.str = $1;
 }| QUOTED_STRING {
 					$$.type = E_STR;
 					$$.str = $1+1;

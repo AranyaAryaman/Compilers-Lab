@@ -13,8 +13,7 @@ typedef struct ast {
 	// and this for leaf nodes
 	// (those with logical (>= <= > < = <> !=) operators)
 	int operand_type[2];		// int str var
-	char *str[2];				// salary name
-	double num[2];					// 10 20
+	char *str[2];				// salary name 10 1.2e-2
 } ast;
 
 typedef struct clq {
