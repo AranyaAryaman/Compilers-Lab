@@ -46,5 +46,6 @@
 [!]														{return EXM;}
 [ \t\r\v\f]+											{}
 <<EOF>>													{return ENDOF;}
-.														{printf("LEX=%s\n", yytext[0];}return yytext[0];}
+.														{printf("LEX=%s\n", yytext[0]);return yytext[0];}
+
 %%

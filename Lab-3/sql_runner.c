@@ -80,14 +80,14 @@ void run_project(void) {
 	}
 
 	for(int i = 0; i < c; i++)
-		printf("%s\t\t", headerFields[headers_arr[i] % nh]);
+		printf("%s,", headerFields[headers_arr[i] % nh]);
 	printf("\n");
 
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
 		for(int i = 0; i < c; i++) {
 			query_count++;
-			printf("%s\t\t", rowFields[headers_arr[i] % nh]);
+			printf("%s,", rowFields[headers_arr[i] % nh]);
 		}
 		printf("\n");
 		CsvParser_destroy_row(row);
@@ -118,15 +118,15 @@ void run_cartprod(void) {
 	char **headerFields1 = CsvParser_getFields(header1);
 	char **headerFields2 = CsvParser_getFields(temp_header2);
 	for(int i = 0; i < CsvParser_getNumFields(header1); i++)
-		printf("%s.%s\t\t", tables[0], headerFields1[i]);
+		printf("%s.%s,", tables[0], headerFields1[i]);
 	for(int i = 0; i < CsvParser_getNumFields(temp_header2); i++)
-		printf("%s.%s\t\t", tables[1], headerFields2[i]);
+		printf("%s.%s,", tables[1], headerFields2[i]);
 	printf("\n");
 	CsvParser_destroy(temp_csvparser2);
 
 	while((row1 = CsvParser_getRow(csvparser1))) {
 		char **rowFields1 = CsvParser_getFields(row1);
-		// printf("%s\t\t", rowFields[i]);
+		// printf("%s,", rowFields[i]);
 		CsvParser *csvparser2 = CsvParser_new(tablename2);
 		CsvRow *row2;
 		CsvRow *header2 = CsvParser_getHeader(csvparser2);
@@ -141,9 +141,9 @@ void run_cartprod(void) {
 			char **rowFields2 = CsvParser_getFields(row2);
 			query_count++;
 			for(int j = 0; j < CsvParser_getNumFields(row1); j++)
-				printf("%s\t\t", rowFields1[j]);
+				printf("%s,", rowFields1[j]);
 			for(int j = 0; j < CsvParser_getNumFields(row2); j++)
-				printf("%s\t\t", rowFields2[j]);
+				printf("%s,", rowFields2[j]);
 			printf("\n");
 			CsvParser_destroy_row(row2);
 		}
@@ -208,9 +208,9 @@ void run_equijoin(void) {
 		return;
 	}
 	for(int i = 0; i < CsvParser_getNumFields(header1); i++)
-		printf("%s.%s\t\t", tables[0], headerFields1[i]);
+		printf("%s.%s,", tables[0], headerFields1[i]);
 	for(int i = 0; i < CsvParser_getNumFields(temp_header2); i++)
-		printf("%s.%s\t\t", tables[1], headerFields2[i]);
+		printf("%s.%s,", tables[1], headerFields2[i]);
 	printf("\n");
 	CsvParser_destroy(temp_csvparser2);
 
@@ -231,9 +231,9 @@ void run_equijoin(void) {
 			if(!strcmp(rowFields1[h1], rowFields2[h2])) {
 				query_count++;
 				for(int j = 0; j < CsvParser_getNumFields(row1); j++)
-					printf("%s\t\t", rowFields1[j]);
+					printf("%s,", rowFields1[j]);
 				for(int j = 0; j < CsvParser_getNumFields(row2); j++)
-					printf("%s\t\t", rowFields2[j]);
+					printf("%s,", rowFields2[j]);
 				printf("\n");
 			}
 			CsvParser_destroy_row(row2);
@@ -260,7 +260,7 @@ void run_select(void) {
 	if(!ast_ok(headerFields, CsvParser_getNumFields(header), ast_root))
 		return;
 	for(int i = 0; i < CsvParser_getNumFields(header); i++)
-		printf("%s\t\t", headerFields[i]);
+		printf("%s,", headerFields[i]);
 	printf("\n");
 
 	while((row = CsvParser_getRow(csvparser))) {
@@ -270,7 +270,7 @@ void run_select(void) {
 		if(res == 1) {
 			query_count++;
 			for(int i = 0; i < CsvParser_getNumFields(row); i++) {
-				printf("%s\t\t", rowFields[i]);
+				printf("%s,", rowFields[i]);
 			}
 			printf("\n");
 		}
