@@ -1,23 +1,50 @@
 %option noyywrap
 %%
-(?i:select)				    {return SELECT;}
-(?i:project)			    {return PROJECT;}
-(?i:cartesian_product)	    {return CARTPROD;}
-(?i:equi_join)			    {return EQUIJOIN;}
-(?i:or)					    {return OR;}
-(?i:and) 				    {return AND;}
-[[:digit:]]+				{yylval.numdata = atoi(yytext); return NUM;}
-[[:alpha:]_]([[:alnum:]_])*	{sscanf(yytext, "%s", yylval.str); return ID;}
-"="						    {return EQ;}
-"("						    {return LP;}
-")"						    {return RP;}
-","						    {return COMMA;}
-"<"						    {return LT;}
-">"						    {return GT;}
-"."						    {return DOT;}
-["]                         {return DOUBLE_QUOTE;}
-[']                         {return SINGLE_QUOTE;}
-"\n"					    {return NEWLINE;}
-[ \t\r\v\f]+			    {}
-.       				    {return yytext[0];}
+(?i:select)												{return SELECT;}
+(?i:project)											{return PROJECT;}
+(?i:cartesian_product)									{return CARTPROD;}
+(?i:equi_join)											{return EQUIJOIN;}
+(?i:or)													{return OR;}
+(?i:and)												{return AND;}
+(?i:not)												{return NOT;}
+[+-]?[[:digit:]]+\.?[[:digit:]]*						{
+															yylval.str = str_duplicate(yytext);
+															return NUM;
+														}
+[+-]?\.[[:digit:]]+										{
+															yylval.str = str_duplicate(yytext);
+															return NUM;
+														}
+[+-]?([[:digit:]]*\.)?[[:digit:]]+[eE][-+]?[[:digit:]]+	{
+															yylval.str = str_duplicate(yytext);
+															return NUM;
+														}
+[+-]?[[:digit:]]+\.[eE][-+]?[[:digit:]]+				{
+															yylval.str = str_duplicate(yytext);
+															return NUM;
+														}
+[[:alpha:]_]([[:alnum:]_])*								{
+															yylval.str = str_duplicate(yytext);
+															return ID;
+														}
+[=]														{return EQ;}
+[(]														{return LP;}
+[)]														{return RP;}
+[,]														{return COMMA;}
+[<]														{return LT;}
+[>]														{return GT;}
+[.]														{return DOT;}
+["]([^"\\\n]|\\.)*["]									{
+															yylval.str = str_duplicate(yytext);
+															return QUOTED_STRING;
+														}
+[']([^'\\\n]|\\.)*[']									{
+															yylval.str = str_duplicate(yytext);
+															return QUOTED_STRING;
+														}
+[\n]													{return NEWLINE;}
+[!]														{return EXM;}
+[ \t\r\v\f]+											{}
+<<EOF>>													{return ENDOF;}
+.														{printf("LEX=%s\n", yytext[0];}return yytext[0];}
 %%
