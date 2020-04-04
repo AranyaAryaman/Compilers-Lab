@@ -5,7 +5,7 @@ A) The whole folder contains two executable files:
 
 B) To run the program, cd into this directory, open the terminal & run:
 
-    ./part1 : to run part1
+    ./part1 <filename> : to run part1
     ./part2 : to run part2
 
 C) The above two executables were formed using "makefile" to simplify the work of the evaluator. 
