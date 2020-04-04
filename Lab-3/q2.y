@@ -46,7 +46,7 @@ S1: CARTPROD_RA DELIM	{
 }| EQUIJOIN_RA DELIM {
 					YYACCEPT;
 }| NEWLINE {
-					// an empty line is not invalid sntac
+					// an empty line is not invalid syntax
 					YYACCEPT;
 }| ENDOF {
 					// Safely exit on Ctrl+D
@@ -185,8 +185,7 @@ DATA:ID {
 					$$.str = $1;
 }| QUOTED_STRING {
 					$$.type = E_STR;
-					$$.str = $1+1;
-					$$.str[strlen($$.str)-1] = 0;
+					$$.str = $1;
 };
 %%
 
@@ -202,7 +201,6 @@ int main(int argc, char **argv) {
 			printf("Invalid Syntax\n");
 			continue;
 		}
-		printf("Valid Syntax\n");
 		run_sql();
 	}
 	return 0;

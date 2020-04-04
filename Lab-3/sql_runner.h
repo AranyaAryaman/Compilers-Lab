@@ -68,4 +68,5 @@ void run_equijoin();
 void run_cartprod();
 ast *new_ast_node();
 clq *new_clq_node();
+
 #endif

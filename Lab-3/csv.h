@@ -19,7 +19,6 @@ typedef struct CsvParser {
 	int csvStringIter_;
 } CsvParser;
 
-// Public
 CsvParser *CsvParser_new(char *filePath);
 void CsvParser_destroy(CsvParser *csvParser);
 void CsvParser_destroy_row(CsvRow *csvRow);

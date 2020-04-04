@@ -65,7 +65,6 @@ void run_project(void) {
 		int index = get_header_index(headerFields, nh, temp->str);
 		if(index == -1) {
 			printf("Column %s not found for projection\n", temp->str);
-			// free(headers_arr);
 			CsvParser_destroy(csvparser);
 			return;
 		}
@@ -78,24 +77,23 @@ void run_project(void) {
 		}
 		temp = temp->next;
 	}
-
-	for(int i = 0; i < c; i++)
-		printf("%s,", headerFields[headers_arr[i] % nh]);
+	printf("%s", headerFields[headers_arr[0] % nh]);
+	for(int i = 1; i < c; i++)
+		printf(", %s", headerFields[headers_arr[i] % nh]);
 	printf("\n");
 
 	while((row = CsvParser_getRow(csvparser))) {
 		char **rowFields = CsvParser_getFields(row);
-		for(int i = 0; i < c; i++) {
-			query_count++;
-			printf("%s,", rowFields[headers_arr[i] % nh]);
+		query_count++;
+		printf("%s", rowFields[headers_arr[0] % nh]);
+		for(int i = 1; i < c; i++) {
+			printf(", %s", rowFields[headers_arr[i] % nh]);
 		}
 		printf("\n");
 		CsvParser_destroy_row(row);
 	}
 	CsvParser_destroy(csvparser);
-	// free(headers_arr);
-	// free_clq(clq_head);
-	printf("%d rows displayed\n", query_count);
+	printf("\n%d rows displayed\n", query_count);
 }
 
 void run_cartprod(void) {
@@ -126,7 +124,6 @@ void run_cartprod(void) {
 
 	while((row1 = CsvParser_getRow(csvparser1))) {
 		char **rowFields1 = CsvParser_getFields(row1);
-		// printf("%s,", rowFields[i]);
 		CsvParser *csvparser2 = CsvParser_new(tablename2);
 		CsvRow *row2;
 		CsvRow *header2 = CsvParser_getHeader(csvparser2);
@@ -140,10 +137,11 @@ void run_cartprod(void) {
 		while((row2 = CsvParser_getRow(csvparser2))) {
 			char **rowFields2 = CsvParser_getFields(row2);
 			query_count++;
-			for(int j = 0; j < CsvParser_getNumFields(row1); j++)
-				printf("%s,", rowFields1[j]);
+			printf("%s", rowFields1[0]);
+			for(int j = 1; j < CsvParser_getNumFields(row1); j++)
+				printf(", %s", rowFields1[j]);
 			for(int j = 0; j < CsvParser_getNumFields(row2); j++)
-				printf("%s,", rowFields2[j]);
+				printf(", %s", rowFields2[j]);
 			printf("\n");
 			CsvParser_destroy_row(row2);
 		}
@@ -151,7 +149,7 @@ void run_cartprod(void) {
 		CsvParser_destroy_row(row1);
 	}
 	CsvParser_destroy(csvparser1);
-	printf("%d rows displayed\n", query_count);
+	printf("\n%d rows displayed\n", query_count);
 }
 
 void run_equijoin(void) {
@@ -230,10 +228,11 @@ void run_equijoin(void) {
 			char **rowFields2 = CsvParser_getFields(row2);
 			if(!strcmp(rowFields1[h1], rowFields2[h2])) {
 				query_count++;
-				for(int j = 0; j < CsvParser_getNumFields(row1); j++)
-					printf("%s,", rowFields1[j]);
+				printf("%s", rowFields1[0]);
+				for(int j = 1; j < CsvParser_getNumFields(row1); j++)
+					printf(", %s", rowFields1[j]);
 				for(int j = 0; j < CsvParser_getNumFields(row2); j++)
-					printf("%s,", rowFields2[j]);
+					printf(", %s", rowFields2[j]);
 				printf("\n");
 			}
 			CsvParser_destroy_row(row2);
@@ -242,7 +241,7 @@ void run_equijoin(void) {
 		CsvParser_destroy_row(row1);
 	}
 	CsvParser_destroy(csvparser1);
-	printf("%d rows displayed\n", query_count);
+	printf("\n%d rows displayed\n", query_count);
 }
 
 void run_select(void) {
@@ -259,8 +258,9 @@ void run_select(void) {
 	char **headerFields = CsvParser_getFields(header);
 	if(!ast_ok(headerFields, CsvParser_getNumFields(header), ast_root))
 		return;
-	for(int i = 0; i < CsvParser_getNumFields(header); i++)
-		printf("%s,", headerFields[i]);
+	printf("%s", headerFields[0]);
+	for(int i = 1; i < CsvParser_getNumFields(header); i++)
+		printf(", %s", headerFields[i]);
 	printf("\n");
 
 	while((row = CsvParser_getRow(csvparser))) {
@@ -269,14 +269,14 @@ void run_select(void) {
 		res = match_on(headerFields, rowFields, CsvParser_getNumFields(header), CsvParser_getNumFields(row), ast_root);
 		if(res == 1) {
 			query_count++;
-			for(int i = 0; i < CsvParser_getNumFields(row); i++) {
-				printf("%s,", rowFields[i]);
+			printf("%s", rowFields[0]);
+			for(int i = 1; i < CsvParser_getNumFields(row); i++) {
+				printf(", %s", rowFields[i]);
 			}
 			printf("\n");
 		}
 		CsvParser_destroy_row(row);
 	}
 	CsvParser_destroy(csvparser);
-	// free_ast(ast_root);
-	printf("%d rows displayed\n", query_count);
+	printf("\n%d rows displayed\n", query_count);
 }

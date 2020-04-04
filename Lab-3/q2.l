@@ -35,11 +35,11 @@
 [>]														{return GT;}
 [.]														{return DOT;}
 ["]([^"\\\n]|\\.)*["]									{
-															yylval.str = str_duplicate(yytext);
+															yylval.str = str_escape(yytext);
 															return QUOTED_STRING;
 														}
 [']([^'\\\n]|\\.)*[']									{
-															yylval.str = str_duplicate(yytext);
+															yylval.str = str_escape(yytext);
 															return QUOTED_STRING;
 														}
 [\n]													{return NEWLINE;}
