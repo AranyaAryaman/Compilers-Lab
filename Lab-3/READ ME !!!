@@ -11,7 +11,9 @@ B) To run the program, cd into this directory, open the terminal & run:
 C) The above two executables were formed using "makefile" to simplify the work of the evaluator. 
    In case the executable files are not available in the folder due to some issue, type "make" in the terminal and then run the executable files.
 
-D) Please reach out to us at "arany170101011@iitg.ac.in" (registered email of Group-01 at 'turnitin') in case there is some problem during the online evaluation. 
+D) Please check the indentation of column names in the csv file. (salary and Salary are different as per our program & also as per the regular SQL RA Syntax)  
+
+E) Please reach out to us at "arany170101011@iitg.ac.in" (registered email of Group-01 at 'turnitin') in case there is some problem during the online evaluation. 
 
 Thanks & Regards
 Group-01
