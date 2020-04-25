@@ -17,6 +17,9 @@
 #define BY_VALUE 1
 #define BY_REFER 2
 
+/* current scope */
+int cur_scope = 0;
+
 /* parameter struct */
 typedef struct Param {
 	int par_type;
@@ -68,7 +71,7 @@ void init_hash_table();										   // initialize hash table
 unsigned int hash(char *key);								   // hash function
 void insert(char *name, int len, int type, int lineno);		   // insert entry
 list_t *lookup(char *name);									   // search for entry
-list_t *lookup_scope(char *name);							   // search for entry in scope
-void hide();												   // hide the current scope
-void hide_scope(int scope);									   // hide a specific scope
+list_t *lookup_scope(char *name, int scope);				   // search for entry in scope
+void hide_scope();											   // hide the current scope
+void incr_scope();											   // go to next scope
 void symtab_dump(FILE *of);									   // dump file
