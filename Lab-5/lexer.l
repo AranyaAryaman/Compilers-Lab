@@ -4,6 +4,7 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
+	#include "ast.h"
 	#include "symtab.h"
 	#include "semantics.h"
 	#include "parser.tab.h"
