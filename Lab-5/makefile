@@ -1,4 +1,5 @@
 all:
+	bison -d parser.y
 	flex lexer.l
-	gcc -o main lex.yy.c
-	rm lex.yy.c
+	gcc -o compiler parser.tab.c lex.yy.c 
+	./compiler example.c

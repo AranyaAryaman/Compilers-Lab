@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* current scope */
+int cur_scope = 0;
+
 void init_hash_table() {
 	int i;
 	hash_table = malloc(SIZE * sizeof(list_t *));
@@ -70,12 +73,12 @@ list_t *lookup_scope(char *name, int scope) { /* return symbol if found or NULL 
 	return l;		 // NULL is not found
 }
 
-void hide_scope() {
+void hide_scope() { /* hide the current scope */
 	if(cur_scope > 0)
 		cur_scope--;
 }
 
-void incr_scope() {
+void incr_scope() { /* go to next scope */
 	cur_scope++;
 }
 
