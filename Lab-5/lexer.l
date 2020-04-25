@@ -4,6 +4,11 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
+    #include "symtab.c"
+
+    extern FILE *yyin;
+    extern FILE *yyout;
+
     int lineno = 1; // initialize to 1
     void ret_print(char *token_type);
     void yyerror();
@@ -71,7 +76,11 @@ STRING      \"{print}*\"
 "&"             { ret_print("REFER"); }
  
  
-{ID}            { ret_print("ID"); }
+{ID}            { 
+                    insert(yytext,strlen(yytext),UNDEF,lineno);
+                    ret_print("ID"); 
+                }
+
 {ICONST}        { ret_print("ICONST"); }
 {FCONST}        { ret_print("FCONST"); }
 {CCONST}        { ret_print("CCONST"); }
@@ -95,8 +104,16 @@ void yyerror(char *message){
 }
  
 int main(int argc, char *argv[]){
+    init_hash_table();
     yyin = fopen(argv[1], "r");
+
+    // Lexical Analysis
     yylex();
     fclose(yyin);
+
+    //Symbol Table Dump 
+    yyout = fopen("symtab_dump.out","w");
+    symtab_dump(yyout);
+    fclose(yyout);
     return 0;
 }
