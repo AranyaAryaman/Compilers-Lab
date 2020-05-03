@@ -1,0 +1,359 @@
+%locations
+
+%code requires {
+#include "errors.h"
+#include "location.h"
+#include "lexer.h"
+#include "ast.h"
+#include <typeinfo>
+#include "mips.h"
+#include <vector>
+#include <map>
+
+  using namespace std;
+}
+
+%{
+#include <stdio.h>
+
+  extern int yylex();
+  extern int yyerror(char *);
+%}
+
+%union{
+  char *name;
+  enum Type type;
+  
+  Declaration *decl;
+  FuncDecl *funcDecl;
+  Identifier *varDecl;
+  vector<IntConst *> *dimList;
+
+  StatementBlock *stmtBlock;
+  vector<Statement *> *stmtList;
+  map<string, Identifier *> *varDecls;
+  vector<Identifier *> *parList;
+  vector<Expression *> *argList;
+  
+  Statement *stmt;
+  ExprStatement *exprStmt;
+  SelStatement *selStmt;
+  IterStatement *iterStmt;
+
+  Expression *expr;
+  OpExpression *opExpr;
+  Operator *op;
+  Access *access;
+
+  int intConst_t;
+  bool boolConst_t;
+  char *stringConst_t;
+  double doubleConst_t;
+
+  IntConst *intConst;
+  BoolConst *boolConst;
+  StringConst *stringConst;
+  DoubleConst *doubleConst;
+}
+
+%token ELSE FOR IF RETURN WHILE PTR_OP INC_OP DEC_OP AND_OP OR_OP LT GT LE_OP GE_OP EQ_OP NE_OP DO
+%token NOT AMP TILDE STAR ASSIGN OPEN_BRACKET CLOSED_BRACKET OPEN_CURLY CLOSED_CURLY OPEN_SQUARE CLOSED_SQUARE
+%token SEMI COMMA DOT PLUS MINUS DIVIDE MODULUS PIPE XOR QUES COLON
+%token <name> ID
+%token <type> BOOL CHAR INT FLOAT VOID
+%token <intConst_t> NUM
+%token <doubleConst_t> REAL
+%token <stringConst_t> STRING_LITERAL
+%token <boolConst_t> BOOLEAN
+
+%nonassoc "UIF"
+%nonassoc ELSE
+
+%left OR_OP
+%left AND_OP
+%left EQ_OP NE_OP
+%left GT
+%left LT
+%left PLUS MINUS
+%left STAR DIVIDE
+%right NOT
+%right UPLUS UMINUS
+%right INC_OP DEC_OP
+
+%type <decl> declaration
+%type <varDecl> variable_declaration
+%type <type> type_specifier
+%type <dimList> bracket_list
+
+%type <funcDecl> function_declaration
+%type <parList> parameter_list
+%type <varDecls> variable_declarations
+%type <argList> argument_expression_list
+%type <stmtBlock> statement_block
+%type <stmtList> statement_list
+%type <stmt> statement
+%type <exprStmt> expression_statement
+%type <selStmt> selection_statement
+%type <iterStmt> iteration_statement
+
+%type <argList> argument_bracket_list
+%type <expr> primary_expression unary_expression multiplicative_expression
+%type <expr> additive_expression relational_expression
+%type <expr> equality_expression logical_and_expression
+%type <expr> conditional_expression assignment_expression
+%type <op> unary_operator
+%type <access> id_arr
+
+%%
+
+program: declaration_list {
+  setParent(global_sym_table, NULL);
+  Identifier *identifier;
+  FuncDecl *function;
+  
+  for (map<string, Declaration *>::iterator i = global_sym_table->begin();
+       i != global_sym_table->end(); ++i)
+  {
+    if(typeid(*(i->second)) == typeid(FuncDecl)){
+      function = dynamic_cast<FuncDecl *>(i->second);
+      function->stmt_block->CheckStatement();
+    }
+  }
+  
+  if(numErrors == 0){
+    printf(".data\n");
+    for (map<string, Declaration *>::iterator i = global_sym_table->begin(); i != global_sym_table->end(); ++i)
+	  {
+      if(typeid(*(i->second)) == typeid(Identifier)){
+        identifier = dynamic_cast<Identifier *>(i->second);
+        identifier->is_global = true;
+        identifier->label = "v_" + identifier->name;
+        int pdt = 1;
+        if(identifier->is_array){
+          for(int j = 0; j<identifier->dim_list->size(); j++){
+            pdt *= (*identifier->dim_list)[j]->val;
+            if(pdt == 0){
+              OutputError((*identifier->dim_list)[j]->loc,
+                          "Array size can't be zero");
+              return -1;
+            }
+          }
+        }
+        printf("%s: .word ", identifier->label.c_str());
+        for(int j = 0; j<pdt-1; j++){
+          printf("0, ");
+        }
+        printf("0 \n");
+      }      
+ 	  }
+    EmitPreamble();
+    bool found_main = false;
+    for (map<string, Declaration *>::iterator i = global_sym_table->begin(); i != global_sym_table->end(); ++i)
+	  {
+      if(typeid(*(i->second)) == typeid(FuncDecl)){
+        i->second->Emit();
+        if(i->second->name == "main"){
+          found_main = true;
+          printf("li $a0 0\n");
+          printf("li $v0 17\n");
+          printf("syscall\n");
+        }
+      }      
+ 	  }
+    if(!found_main)
+      NoMainFound();
+  }
+ }
+;
+
+declaration_list
+: declaration_list declaration {CheckAndInsertIntoSymTable(global_sym_table, $2);}
+| /* EPSILON */ {global_sym_table = new map<string, Declaration *>;}
+;
+
+declaration
+: variable_declaration {$$ = $1;}
+| function_declaration {$$ = $1;}
+;
+
+variable_declaration
+: type_specifier ID SEMI{($$ = new Identifier(@2, $1, $2));}
+| type_specifier ID bracket_list SEMI{($$ = new Identifier(@2, $1, $2, $3));}
+;
+
+bracket_list
+: bracket_list OPEN_SQUARE NUM CLOSED_SQUARE {($$ = $1)->push_back(new IntConst(@3, $3));}
+| OPEN_SQUARE NUM CLOSED_SQUARE {($$ = new vector<IntConst *>)->push_back(new IntConst(@2, $2));}
+;
+
+function_declaration
+: type_specifier ID OPEN_BRACKET parameter_list CLOSED_BRACKET statement_block {
+  // Check whether var decl conflict with parameter decl
+  for(int i = 0; i<$4->size(); i++){
+    if($6->symbol_table->find((*$4)[i]->name) != $6->symbol_table->end()){
+      DeclConflict((*$6->symbol_table)[(*$4)[i]->name], (*$4)[i]);
+      //free((*$6->symbol_table)[(*$4)[i]->name]);
+      $6->symbol_table->erase((*$4)[i]->name);
+    }
+  }
+  $$ = new FuncDecl(@2, @1, $1, $2, $4, $6);
+  $$->CalcOffsets();
+}
+;
+
+statement_block
+: OPEN_CURLY variable_declarations statement_list CLOSED_CURLY {$$ = new StatementBlock($2, $3);}
+;
+
+variable_declarations
+: variable_declarations variable_declaration {CheckAndInsertIntoSymTable($$ = $1, $2);}
+| /* EPSILON */ {$$ = new map<string, Identifier *>;}
+;
+
+parameter_list 
+: parameter_list COMMA type_specifier ID {CheckAndInsertIntoSymTable(($$ = $1), (new Identifier(@4, $3, $4)));}
+| type_specifier ID {($$ = new vector<Identifier *>); $$->push_back(new Identifier(@2, $1, $2));}
+| /* EPSILON */ {$$ = new vector<Identifier *>;}
+;
+
+type_specifier
+: VOID
+| CHAR
+| INT
+| FLOAT
+| BOOL
+;
+
+statement_list
+: statement_list statement {($$ = $1)->push_back($2);}
+| /* EPSILON */ {$$ = new vector<Statement *>;}
+;
+    
+statement
+: expression_statement {$$ = $1;}
+| selection_statement {$$ = $1;}
+| iteration_statement {$$ = $1;}
+| statement_block {$$ = $1;}
+| RETURN SEMI {$$ = new ReturnStatement(@1, NULL);}
+| RETURN assignment_expression SEMI {$$ = new ReturnStatement(@1, $2);}
+;
+
+primary_expression
+: id_arr {$$ = $1;}
+| NUM { $$ = new IntConst(@1, $1); }
+| REAL { $$ = new DoubleConst(@1, $1); }
+| STRING_LITERAL { $$ = new StringConst(@1, $1); }
+| OPEN_BRACKET assignment_expression CLOSED_BRACKET { $$ = $2; }
+| ID OPEN_BRACKET argument_expression_list CLOSED_BRACKET {
+  $$ = new Call(@1, *(new string($1)), $3);
+ }
+// TODO:: Add array access
+;
+
+id_arr
+: ID { $$ = new Access(@1, *(new string($1))); }
+| ID argument_bracket_list {$$ = new Access (@1, *(new string($1)), $2);}
+;
+
+argument_bracket_list
+: argument_bracket_list OPEN_SQUARE assignment_expression CLOSED_SQUARE {
+  ($$ = $1)->push_back($3);
+ }
+| OPEN_SQUARE assignment_expression CLOSED_SQUARE {
+  $$ = new vector<Expression *>;
+  $$->push_back($2);
+ }
+;
+
+argument_expression_list
+: argument_expression_list COMMA assignment_expression {($$ = $1)->push_back($3);}
+| assignment_expression {($$ = new vector<Expression *>)->push_back($1);}
+| /*EPSILON*/ {$$ = new vector<Expression *>;}
+;
+
+unary_expression
+: primary_expression { $$ = $1; }
+| unary_operator unary_expression { $$ = new OpExpression($1, $2); }
+;
+
+unary_operator
+: PLUS %prec UPLUS { $$ = new Operator(@1, PLUS); }
+| MINUS %prec UMINUS { $$ = new Operator(@1, MINUS); }
+| NOT { $$ = new Operator(@1, NOT); }
+| DEC_OP {$$ = new Operator(@1, DEC_OP);}
+| INC_OP {$$ = new Operator(@1, INC_OP);}
+;
+
+multiplicative_expression
+: unary_expression {$$ = $1;}
+| multiplicative_expression STAR unary_expression {$$ = new OpExpression(new Operator(@2, STAR), $1, $3);}
+| multiplicative_expression DIVIDE unary_expression {$$ = new OpExpression(new Operator(@2, DIVIDE), $1, $3);}
+| multiplicative_expression MODULUS unary_expression {$$ = new OpExpression(new Operator(@2, MODULUS), $1, $3);}
+;
+
+additive_expression
+: multiplicative_expression {$$ = $1;}
+| additive_expression PLUS multiplicative_expression {$$ = new OpExpression(new Operator(@2, PLUS), $1, $3);}
+| additive_expression MINUS multiplicative_expression {$$ = new OpExpression(new Operator(@2, MINUS), $1, $3);}
+;
+
+relational_expression
+: additive_expression {$$ = $1;}
+| relational_expression LT additive_expression {$$ = new OpExpression(new Operator(@2, LT), $1, $3);}
+| relational_expression GT additive_expression {$$ = new OpExpression(new Operator(@2, GT), $1, $3);}
+;
+
+equality_expression
+: relational_expression {$$ = $1;}
+| equality_expression EQ_OP relational_expression {$$ = new OpExpression(new Operator(@2, EQ_OP), $1, $3);}
+| equality_expression NE_OP relational_expression {$$ = new OpExpression(new Operator(@2, NE_OP), $1, $3);}
+;
+
+logical_and_expression
+: equality_expression {$$ = $1;}
+| logical_and_expression AND_OP equality_expression { $$ = new OpExpression(new Operator(@2, AND_OP), $1, $3); }
+;
+
+conditional_expression
+: logical_and_expression {$$ = $1;}
+| conditional_expression OR_OP logical_and_expression {$$ = new OpExpression(new Operator(@2, OR_OP), $1, $3);}
+;
+
+assignment_expression
+: conditional_expression { $$ = $1; }
+| id_arr ASSIGN assignment_expression { $$ = new OpExpression(new Operator(@2, ASSIGN), $1, $3); }
+;
+
+iteration_statement
+: WHILE OPEN_BRACKET assignment_expression CLOSED_BRACKET statement { $$ = new IterStatement($3, $5); }
+| FOR OPEN_BRACKET expression_statement expression_statement assignment_expression CLOSED_BRACKET statement { $$ = new IterStatement($3, $4, $5, $7); }
+;
+
+selection_statement
+: IF OPEN_BRACKET assignment_expression CLOSED_BRACKET statement ELSE statement { $$ = new SelStatement($3, $5, $7); }
+| IF OPEN_BRACKET assignment_expression CLOSED_BRACKET statement %prec "UIF" { $$ = new SelStatement($3, $5); }
+;
+
+expression_statement
+: SEMI { $$ = new ExprStatement(NULL); }
+| assignment_expression SEMI { $$ = new ExprStatement($1);}
+;
+
+%%
+#include <stdio.h>
+
+extern char yytext[];
+
+int yyerror(char *s){
+  fflush(stdout);
+  printf("%s\n", s);
+}
+
+int main(){
+  InitScanner();
+  InitCodeGenerator();
+  //yydebug = 1;
+  return yyparse();
+}
+
+
